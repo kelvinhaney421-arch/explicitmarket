@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   BarChart3,
   Users,
@@ -103,14 +104,18 @@ export function AdminPage() {
   const [walletCurrency, setWalletCurrency] = useState('USD');
   const [walletNetwork, setWalletNetwork] = useState('');
 
-  // Bot approval outcomes and durations
+  // Bot approval outcomes and durations - separate state for clarity
   const [botOutcomes, setBotOutcomes] = useState<Record<string, 'win' | 'lose'>>({});
-  const [botDurations, setBotDurations] = useState<Record<string, string>>({});
+  const [botDurationValues, setBotDurationValues] = useState<Record<string, string>>({});
+  const [botDurationTypes, setBotDurationTypes] = useState<Record<string, 'minutes' | 'hours' | 'days'>>({});
 
-  // Signal approval outcomes and durations
+  // Signal approval outcomes and durations - separate state for clarity
   const [signalOutcomes, setSignalOutcomes] = useState<Record<string, 'win' | 'lose'>>({});
-  const [signalDurations, setSignalDurations] = useState<Record<string, string>>({});
+  const [signalDurationValues, setSignalDurationValues] = useState<Record<string, string>>({});
   const [signalDurationTypes, setSignalDurationTypes] = useState<Record<string, 'minutes' | 'hours' | 'days'>>({});
+
+  // Modal state for duration inputs
+  const [openDurationModal, setOpenDurationModal] = useState<{ type: 'bot' | 'signal'; id: string } | null>(null);
 
   const filteredUsers = allUsers.filter(u => 
     u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || 
@@ -541,7 +546,22 @@ export function AdminPage() {
               const hasBalance = (user?.balance || 0) >= bot.allocatedAmount;
               
               return (
-                <div key={bot.id} className={`border rounded-lg p-4 ${isAllocated ? 'bg-[#0d1117] border-[#21262d]' : 'bg-yellow-500/5 border-yellow-500/30'}`}>
+                <div 
+                  key={bot.id} 
+                  className={`border rounded-lg p-4 ${isAllocated ? 'bg-[#0d1117] border-[#21262d]' : 'bg-yellow-500/5 border-yellow-500/30'}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                >
                   {/* Header */}
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex-1">
@@ -590,7 +610,21 @@ export function AdminPage() {
 
                   {/* Controls */}
                   {isAllocated && hasBalance && (
-                    <div className="bg-[#0d1117]/50 border border-[#21262d] rounded-lg p-4 space-y-4">
+                    <div 
+                      className="bg-[#0d1117]/50 border border-[#21262d] rounded-lg p-4 space-y-4"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                      }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                      }}
+                      onTouchStart={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                      }}
+                    >
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Outcome Selection */}
                         <div>
@@ -622,32 +656,23 @@ export function AdminPage() {
                         </div>
 
                         {/* Duration Selection */}
-                        <div>
-                          <p className="text-sm font-bold text-white mb-3">Run Duration</p>
-                          <div className="flex gap-2 items-end">
-                            <div className="flex-1">
-                              <label className="text-xs text-[#8b949e] block mb-1">Value</label>
-                              <input
-                                type="number"
-                                min="1"
-                                value={botDurations[bot.id] || '7'}
-                                onChange={(e) => setBotDurations(prev => ({ ...prev, [bot.id]: e.target.value }))}
-                                className="w-full px-3 py-2 bg-[#161b22] border border-[#21262d] rounded text-white text-sm focus:border-[#2962ff] focus:outline-none"
-                              />
+                        <div className="bg-[#161b22] border-2 border-[#2962ff] rounded-lg p-4 space-y-3">
+                          <p className="text-sm font-bold text-white">⏱️ Run Duration</p>
+                          
+                          <button
+                            onClick={() => setOpenDurationModal({ type: 'bot', id: bot.id })}
+                            className="w-full px-4 py-3 bg-[#0d1117] border-2 border-[#2962ff]/50 rounded-lg text-white text-sm font-semibold hover:border-[#2962ff] hover:bg-[#0d1117]/80 transition-all flex items-center justify-between"
+                          >
+                            <span>{botDurationValues[bot.id] ? `${botDurationValues[bot.id]} ${botDurationTypes[bot.id] || 'days'}` : 'Click to set duration'}</span>
+                            <span className="text-xs">⚙️</span>
+                          </button>
+                          
+                          {/* Display Selected Duration */}
+                          {(botDurationValues[bot.id] || botDurationTypes[bot.id]) && (
+                            <div className="bg-[#2962ff]/10 border border-[#2962ff]/30 rounded p-2 text-xs text-[#2962ff] font-semibold">
+                              ✓ Selected: {botDurationValues[bot.id] || '7'} {botDurationTypes[bot.id] || 'days'}
                             </div>
-                            <div className="flex-1">
-                              <label className="text-xs text-[#8b949e] block mb-1">Unit</label>
-                              <select
-                                value={(botDurations[`${bot.id}-type`] || 'days') as any}
-                                onChange={(e) => setBotDurations(prev => ({ ...prev, [`${bot.id}-type`]: e.target.value }))}
-                                className="w-full px-3 py-2 bg-[#161b22] border border-[#21262d] rounded text-white text-sm cursor-pointer focus:border-[#2962ff] focus:outline-none"
-                              >
-                                <option value="minutes">Minutes</option>
-                                <option value="hours">Hours</option>
-                                <option value="days">Days</option>
-                              </select>
-                            </div>
-                          </div>
+                          )}
                         </div>
                       </div>
 
@@ -655,12 +680,13 @@ export function AdminPage() {
                       <button
                         onClick={() => {
                           const outcome = botOutcomes[bot.id] || 'win';
-                          const durationValue = botDurations[bot.id] || '7';
-                          const durationType = (botDurations[`${bot.id}-type`] || 'days') as 'hours' | 'days';
+                          const durationValue = botDurationValues[bot.id] || '7';
+                          const durationType = botDurationTypes[bot.id] || 'days';
                           approveBotActivation(bot.id, durationValue, durationType, outcome);
                           // Reset form
                           setBotOutcomes(prev => ({ ...prev, [bot.id]: undefined }));
-                          setBotDurations(prev => ({ ...prev, [bot.id]: '', [`${bot.id}-type`]: '' }));
+                          setBotDurationValues(prev => ({ ...prev, [bot.id]: '' }));
+                          setBotDurationTypes(prev => ({ ...prev, [bot.id]: undefined }));
                         }}
                         className="w-full py-3 bg-[#26a69a] hover:bg-teal-600 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2"
                       >
@@ -753,7 +779,22 @@ export function AdminPage() {
               const hasBalance = (user?.balance || 0) >= signal.allocation;
               
               return (
-                <div key={signal.id} className={`border rounded-lg p-4 ${hasBalance ? 'bg-[#0d1117] border-[#21262d]' : 'bg-yellow-500/5 border-yellow-500/30'}`}>
+                <div 
+                  key={signal.id} 
+                  className={`border rounded-lg p-4 ${hasBalance ? 'bg-[#0d1117] border-[#21262d]' : 'bg-yellow-500/5 border-yellow-500/30'}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                >
                   {/* Header */}
                   <div className="flex items-start justify-between gap-4 mb-4">
                     <div className="flex-1">
@@ -797,7 +838,21 @@ export function AdminPage() {
 
                   {/* Controls */}
                   {hasBalance && (
-                    <div className="bg-[#0d1117]/50 border border-[#21262d] rounded-lg p-4 space-y-4">
+                    <div 
+                      className="bg-[#0d1117]/50 border border-[#21262d] rounded-lg p-4 space-y-4"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                      }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                      }}
+                      onTouchStart={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                      }}
+                    >
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Outcome Selection */}
                         <div>
@@ -829,32 +884,23 @@ export function AdminPage() {
                         </div>
 
                         {/* Duration Selection */}
-                        <div>
-                          <p className="text-sm font-bold text-white mb-3">Subscription Duration</p>
-                          <div className="flex gap-2 items-end">
-                            <div className="flex-1">
-                              <label className="text-xs text-[#8b949e] block mb-1">Value</label>
-                              <input
-                                type="number"
-                                min="1"
-                                value={signalDurations[signal.id] || '7'}
-                                onChange={(e) => setSignalDurations(prev => ({ ...prev, [signal.id]: e.target.value }))}
-                                className="w-full px-3 py-2 bg-[#161b22] border border-[#21262d] rounded text-white text-sm focus:border-[#2962ff] focus:outline-none"
-                              />
+                        <div className="bg-[#161b22] border-2 border-yellow-500 rounded-lg p-4 space-y-3">
+                          <p className="text-sm font-bold text-white">⏱️ Subscription Duration</p>
+                          
+                          <button
+                            onClick={() => setOpenDurationModal({ type: 'signal', id: signal.id })}
+                            className="w-full px-4 py-3 bg-[#0d1117] border-2 border-yellow-500/50 rounded-lg text-white text-sm font-semibold hover:border-yellow-500 hover:bg-[#0d1117]/80 transition-all flex items-center justify-between"
+                          >
+                            <span>{signalDurationValues[signal.id] ? `${signalDurationValues[signal.id]} ${signalDurationTypes[signal.id] || 'days'}` : 'Click to set duration'}</span>
+                            <span className="text-xs">⚙️</span>
+                          </button>
+                          
+                          {/* Display Selected Duration */}
+                          {(signalDurationValues[signal.id] || signalDurationTypes[signal.id]) && (
+                            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-2 text-xs text-yellow-400 font-semibold">
+                              ✓ Selected: {signalDurationValues[signal.id] || '7'} {signalDurationTypes[signal.id] || 'days'}
                             </div>
-                            <div className="flex-1">
-                              <label className="text-xs text-[#8b949e] block mb-1">Unit</label>
-                              <select
-                                value={signalDurationTypes[signal.id] || 'days'}
-                                onChange={(e) => setSignalDurationTypes(prev => ({ ...prev, [signal.id]: e.target.value as 'minutes' | 'hours' | 'days' }))}
-                                className="w-full px-3 py-2 bg-[#161b22] border border-[#21262d] rounded text-white text-sm cursor-pointer focus:border-[#2962ff] focus:outline-none"
-                              >
-                                <option value="minutes">Minutes</option>
-                                <option value="hours">Hours</option>
-                                <option value="days">Days</option>
-                              </select>
-                            </div>
-                          </div>
+                          )}
                         </div>
                       </div>
 
@@ -862,12 +908,12 @@ export function AdminPage() {
                       <button
                         onClick={() => {
                           const outcome = signalOutcomes[signal.id] || 'win';
-                          const duration = signalDurations[signal.id] || '7';
+                          const duration = signalDurationValues[signal.id] || '7';
                           const durationType = signalDurationTypes[signal.id] || 'days';
                           approveSignalSubscription(signal.id, duration, durationType, outcome);
                           // Reset form
                           setSignalOutcomes(prev => ({ ...prev, [signal.id]: undefined }));
-                          setSignalDurations(prev => ({ ...prev, [signal.id]: '' }));
+                          setSignalDurationValues(prev => ({ ...prev, [signal.id]: '' }));
                           setSignalDurationTypes(prev => ({ ...prev, [signal.id]: undefined }));
                         }}
                         className="w-full py-3 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 font-bold rounded-lg transition-all flex items-center justify-center gap-2"
@@ -1470,8 +1516,119 @@ export function AdminPage() {
     }
   };
 
+  // Duration Modal Component
+  const DurationModal = () => {
+    if (!openDurationModal) return null;
+
+    const isBotModal = openDurationModal.type === 'bot';
+    const id = openDurationModal.id;
+    const currentValue = isBotModal ? botDurationValues[id] ?? '' : signalDurationValues[id] ?? '';
+    const currentType = isBotModal ? botDurationTypes[id] ?? 'days' : signalDurationTypes[id] ?? 'days';
+
+    return createPortal(
+      <div 
+        className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) {
+            setOpenDurationModal(null);
+          }
+        }}
+      >
+        <div 
+          className="bg-[#161b22] border border-[#21262d] rounded-lg p-6 w-96 shadow-2xl"
+          onMouseDown={(e) => e.stopPropagation()}
+        >
+          <h3 className="text-lg font-bold text-white mb-4">Set Duration</h3>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs text-[#8b949e] font-semibold block mb-2">Duration Value</label>
+              <input
+                type="number"
+                min="1"
+                max="999"
+                placeholder="Enter duration (e.g., 7)"
+                value={currentValue}
+                onChange={(e) => {
+                  if (isBotModal) {
+                    setBotDurationValues(prev => ({ ...prev, [id]: e.target.value }));
+                  } else {
+                    setSignalDurationValues(prev => ({ ...prev, [id]: e.target.value }));
+                  }
+                }}
+                autoFocus
+                className="w-full px-4 py-3 bg-[#0d1117] border-2 border-[#2962ff]/50 rounded-lg text-white text-sm font-semibold focus:border-[#2962ff] focus:outline-none transition-all hover:border-[#2962ff]"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs text-[#8b949e] font-semibold block mb-2">Time Unit</label>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const units: ('minutes' | 'hours' | 'days')[] = ['minutes', 'hours', 'days'];
+                    const currentIndex = units.indexOf(currentType);
+                    const prevIndex = currentIndex === 0 ? 2 : currentIndex - 1;
+                    if (isBotModal) {
+                      setBotDurationTypes(prev => ({ ...prev, [id]: units[prevIndex] }));
+                    } else {
+                      setSignalDurationTypes(prev => ({ ...prev, [id]: units[prevIndex] }));
+                    }
+                  }}
+                  className="px-3 py-3 bg-[#0d1117] border-2 border-[#2962ff]/50 rounded-lg text-white font-bold hover:border-[#2962ff] hover:bg-[#0d1117]/80 transition-all"
+                >
+                  &lt;
+                </button>
+                <select
+                  value={currentType}
+                  onChange={(e) => {
+                    if (isBotModal) {
+                      setBotDurationTypes(prev => ({ ...prev, [id]: e.target.value as 'minutes' | 'hours' | 'days' }));
+                    } else {
+                      setSignalDurationTypes(prev => ({ ...prev, [id]: e.target.value as 'minutes' | 'hours' | 'days' }));
+                    }
+                  }}
+                  className="flex-1 px-4 py-3 bg-[#0d1117] border-2 border-[#2962ff]/50 rounded-lg text-white text-sm font-semibold cursor-pointer focus:border-[#2962ff] focus:outline-none transition-all hover:border-[#2962ff]"
+                >
+                  <option value="minutes">📍 Minutes</option>
+                  <option value="hours">⏳ Hours</option>
+                  <option value="days">📅 Days</option>
+                </select>
+                <button
+                  onClick={() => {
+                    const units: ('minutes' | 'hours' | 'days')[] = ['minutes', 'hours', 'days'];
+                    const currentIndex = units.indexOf(currentType);
+                    const nextIndex = currentIndex === 2 ? 0 : currentIndex + 1;
+                    if (isBotModal) {
+                      setBotDurationTypes(prev => ({ ...prev, [id]: units[nextIndex] }));
+                    } else {
+                      setSignalDurationTypes(prev => ({ ...prev, [id]: units[nextIndex] }));
+                    }
+                  }}
+                  className="px-3 py-3 bg-[#0d1117] border-2 border-[#2962ff]/50 rounded-lg text-white font-bold hover:border-[#2962ff] hover:bg-[#0d1117]/80 transition-all"
+                >
+                  &gt;
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setOpenDurationModal(null)}
+              className="w-full py-3 bg-[#26a69a] hover:bg-teal-600 text-white font-bold rounded-lg transition-all"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  };
+
   return (
-    <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 pb-20 md:pb-6">
+    <>
+      <DurationModal />
+      <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6 pb-20 md:pb-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-[#0d1117] via-[#161b22] to-[#0d1117] border border-[#21262d] rounded-lg p-8 space-y-2">
         <div className="flex items-center gap-2 mb-2">
@@ -1508,5 +1665,6 @@ export function AdminPage() {
         {renderTab()}
       </div>
     </div>
+    </>
   );
 }
