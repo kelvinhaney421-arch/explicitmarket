@@ -4,6 +4,9 @@ import { Card } from '../components/ui/Card';
 import { CheckCircle, TrendingUp, Users, Star, Filter, Zap, Award, X, Trash2, Plus } from 'lucide-react';
 import { PaymentModal } from '../components/PaymentModal';
 
+// Exact signal pricing
+const SIGNAL_PRICES = [500, 750, 1050, 3000, 4500, 2300, 650, 1500];
+
 export function SignalsPage() {
   const { signals, executeTrade, account, purchasedSignals, purchaseSignal, user, signalTemplates, terminateSignal, allocateSignalCapital } = useStore();
   const [activeFilter, setActiveFilter] = useState('All');
@@ -248,92 +251,107 @@ export function SignalsPage() {
       {/* My Purchased Signals Section */}
       {purchasedSignals.length > 0 && (
         <div className="space-y-6">
-          <div>
+          <div className="space-y-2">
             <h3 className="text-2xl font-bold text-white mb-2">My Signal Subscriptions</h3>
-            <p className="text-[#8b949e]">Signals you are subscribed to with real-time performance</p>
+            <p className="text-[#8b949e]">Active signals with real-time trading performance</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {purchasedSignals.map((signal) => (
               <div
                 key={signal.id}
-                className="bg-[#161b22] border border-[#21262d] rounded-lg overflow-hidden hover:border-[#26a69a] transition-all"
+                className="group relative bg-gradient-to-br from-[#161b22] via-[#161b22] to-[#0d1117] border border-[#21262d] rounded-2xl overflow-hidden transition-all duration-300 hover:border-transparent hover:shadow-2xl hover:shadow-teal-500/20"
               >
-                <div className="h-2 bg-gradient-to-r from-[#26a69a] to-cyan-500" />
+                {/* Animated Background Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#26a69a]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 
-                <div className="p-6 space-y-4">
-                  <div className="space-y-1">
-                    <h4 className="text-lg font-bold text-white">{signal.providerName}</h4>
-                    <div className="flex items-center gap-2">
+                {/* Top Accent Bar */}
+                <div className="h-1.5 bg-gradient-to-r from-[#26a69a] via-cyan-500 to-blue-500" />
+
+                {/* Content */}
+                <div className="relative z-10 flex flex-col h-full">
+                  {/* Header */}
+                  <div className="p-6 space-y-3 border-b border-[#21262d]">
+                    <div className="space-y-1.5">
+                      <h4 className="text-xl font-bold text-white">{signal.providerName}</h4>
                       <span
-                        className={`text-xs font-bold px-2 py-1 rounded-full ${
+                        className={`inline-flex text-xs font-bold px-3 py-1.5 rounded-full border ${
                           signal.status === 'ACTIVE'
-                            ? 'bg-[#26a69a]/20 text-[#26a69a]'
+                            ? 'bg-[#26a69a]/10 text-[#26a69a] border-[#26a69a]/30'
                             : signal.status === 'APPROVED_FOR_ALLOCATION'
-                            ? 'bg-[#2962ff]/20 text-[#2962ff]'
+                            ? 'bg-[#2962ff]/10 text-[#2962ff] border-[#2962ff]/30'
                             : signal.status === 'PENDING_APPROVAL'
-                            ? 'bg-yellow-500/20 text-yellow-500'
-                            : 'bg-[#8b949e]/20 text-[#8b949e]'
+                            ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
+                            : 'bg-[#8b949e]/10 text-[#8b949e] border-[#8b949e]/30'
                         }`}
                       >
-                        {signal.status === 'PENDING_APPROVAL' ? 'Pending Approval' : 
-                         signal.status === 'APPROVED_FOR_ALLOCATION' ? 'Approved - Allocate Capital' :
+                        {signal.status === 'PENDING_APPROVAL' ? '⏳ Pending Approval' : 
+                         signal.status === 'APPROVED_FOR_ALLOCATION' ? '✓ Approved - Allocate' :
+                         signal.status === 'ACTIVE' ? '✓ Active' :
                          signal.status}
                       </span>
                     </div>
                   </div>
 
-                  {(signal.status === 'ACTIVE' || signal.status === 'APPROVED_FOR_ALLOCATION') && (
-                    <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-[#0d1117] p-3 rounded-lg border border-[#21262d] space-y-1">
-                          <span className="text-xs text-[#8b949e]">Win Rate</span>
-                          <span className="block text-base font-bold text-[#26a69a]">{signal.winRate}%</span>
+                  {/* Body */}
+                  <div className="p-6 space-y-4 flex-1">
+                    {(signal.status === 'ACTIVE' || signal.status === 'APPROVED_FOR_ALLOCATION') && (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-[#0d1117] p-4 rounded-lg border border-[#21262d] space-y-1.5">
+                            <span className="text-xs text-[#8b949e] font-medium">Win Rate</span>
+                            <span className="block text-lg font-bold text-[#26a69a]">{signal.winRate}%</span>
+                          </div>
+                          <div className="bg-[#0d1117] p-4 rounded-lg border border-[#21262d] space-y-1.5">
+                            <span className="text-xs text-[#8b949e] font-medium">Allocated</span>
+                            <span className="block text-lg font-bold text-white">${signal.allocation.toFixed(2)}</span>
+                          </div>
                         </div>
-                        <div className="bg-[#0d1117] p-3 rounded-lg border border-[#21262d] space-y-1">
-                          <span className="text-xs text-[#8b949e]">Allocated</span>
-                          <span className="block text-base font-bold text-white">${signal.allocation.toFixed(2)}</span>
-                        </div>
-                      </div>
 
-                      {signal.status === 'ACTIVE' && (
-                        <>
-                          <div className="bg-[#0d1117] p-3 rounded-lg border border-[#21262d]">
-                            <span className="text-xs text-[#8b949e]">Earnings</span>
+                        {signal.status === 'ACTIVE' && (
+                          <div className="bg-[#0d1117] p-4 rounded-lg border border-[#21262d] space-y-1.5">
+                            <span className="text-xs text-[#8b949e] font-medium">Earnings</span>
                             <span className={`block text-lg font-bold ${signal.earnings >= 0 ? 'text-[#26a69a]' : 'text-red-400'}`}>
-                              ${signal.earnings.toFixed(2)}
+                              {signal.earnings >= 0 ? '+' : ''} ${signal.earnings.toFixed(2)}
                             </span>
                           </div>
+                        )}
+                      </>
+                    )}
 
-                          <div className="text-xs text-[#8b949e] text-center py-2">
-                            Following this trader's signals in real-time
-                          </div>
+                    {signal.status === 'PENDING_APPROVAL' && (
+                      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-center space-y-2">
+                        <p className="text-yellow-400 text-sm font-bold">⏳ Awaiting Admin Review</p>
+                        <p className="text-xs text-[#8b949e]">Your signal will be verified and activated shortly</p>
+                      </div>
+                    )}
+                  </div>
 
-                          <button
-                            onClick={() => terminateSignal(signal.id)}
-                            className="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-bold text-sm transition-all border border-red-500/30 flex items-center justify-center gap-2"
-                          >
-                            <Trash2 className="h-4 w-4" /> Terminate Signal
-                          </button>
-                        </>
-                      )}
-
-                      {signal.status === 'APPROVED_FOR_ALLOCATION' && signal.allocation === 0 && (
+                  {/* Footer Actions */}
+                  <div className="p-4 border-t border-[#21262d] bg-[#0d1117]/50 space-y-2">
+                    {signal.status === 'ACTIVE' && (
+                      <div className="space-y-2">
+                        <div className="text-xs text-[#8b949e] text-center bg-[#161b22] p-2.5 rounded-lg border border-[#21262d]">
+                          Following {signal.providerName}'s signals in real-time
+                        </div>
                         <button
-                          onClick={() => setAllocationModal({ isOpen: true, signalId: signal.id, amount: '' })}
-                          className="w-full py-2 bg-[#2962ff] hover:bg-blue-700 text-white rounded-lg font-bold flex items-center justify-center gap-2 transition-all"
+                          onClick={() => terminateSignal(signal.id)}
+                          className="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-bold text-sm transition-all border border-red-500/30 flex items-center justify-center gap-2"
                         >
-                          <Plus className="h-4 w-4" /> Allocate Capital
+                          <Trash2 className="h-4 w-4" /> Terminate
                         </button>
-                      )}
-                    </>
-                  )}
+                      </div>
+                    )}
 
-                  {signal.status === 'PENDING_APPROVAL' && (
-                    <div className="text-center py-4 text-sm text-yellow-500">
-                      Waiting for admin approval...
-                    </div>
-                  )}
+                    {signal.status === 'APPROVED_FOR_ALLOCATION' && signal.allocation === 0 && (
+                      <button
+                        onClick={() => setAllocationModal({ isOpen: true, signalId: signal.id, amount: '' })}
+                        className="w-full py-2.5 bg-gradient-to-r from-[#2962ff] to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/20"
+                      >
+                        <Plus className="h-4 w-4" /> Allocate Capital
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -468,124 +486,127 @@ export function SignalsPage() {
       {/* Signals Grid */}
       <div>
         <h3 className="text-lg font-bold text-white mb-6">Available Signals ({filteredSignals.length})</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {filteredSignals.map((signal, idx) => {
             const trader = allTraders[idx % allTraders.length];
-            const price = idx % 3 === 0 ? 'FREE' : `$${(Math.random() * 20 + 9).toFixed(2)}`;
-            const priceValue = price === 'FREE' ? 0 : parseFloat(price.substring(1));
+            const priceValue = SIGNAL_PRICES[idx % SIGNAL_PRICES.length];
+            const price = `$${priceValue}`;
 
             return (
               <div
                 key={signal.id}
-                className="bg-[#161b22] border border-[#21262d] rounded-lg overflow-hidden hover:border-[#2962ff] transition-all group hover:shadow-lg hover:shadow-blue-500/10"
+                className="group relative bg-gradient-to-br from-[#161b22] via-[#161b22] to-[#0d1117] border border-[#21262d] rounded-2xl overflow-hidden transition-all duration-300 hover:border-transparent hover:shadow-2xl hover:shadow-teal-500/20"
               >
-                {/* Top Gradient Bar */}
-                <div className="h-1 bg-gradient-to-r from-[#2962ff] to-[#26a69a]" />
+                {/* Animated Background Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#26a69a]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                {/* Top Accent Bar */}
+                <div className="h-1.5 bg-gradient-to-r from-[#2962ff] via-[#26a69a] to-cyan-500" />
 
-                {/* Trader Header */}
-                <div className="p-4 border-b border-[#21262d] bg-[#0d1117] space-y-3">
-                  <div className="flex items-center justify-between">
+                {/* Content */}
+                <div className="relative z-10 flex flex-col h-full">
+                  {/* Trader Header */}
+                  <div className="p-4 border-b border-[#21262d] bg-[#0d1117]/50 space-y-3">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-12 h-12 rounded-full ${trader.avatar} flex items-center justify-center text-white font-bold text-lg shadow-lg`}
+                        className={`w-14 h-14 rounded-full ${trader.avatar} flex items-center justify-center text-white font-bold text-lg shadow-lg ring-2 ring-[#21262d]`}
                       >
                         {trader.name[0]}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white">{trader.name}</span>
-                          {trader.verified && <CheckCircle className="h-4 w-4 text-[#2962ff]" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="font-bold text-white truncate">{trader.name}</span>
+                          {trader.verified && <CheckCircle className="h-4 w-4 text-[#2962ff] flex-shrink-0" />}
                         </div>
-                        <p className="text-xs text-[#8b949e]">{trader.totalSignals} signals sent</p>
+                        <p className="text-xs text-[#8b949e]">{trader.totalSignals} signals</p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs text-[#8b949e]">Win Rate</p>
-                      <p className="text-lg font-bold text-[#26a69a]">{trader.winRate}%</p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-[#161b22] p-2 rounded border border-[#21262d]">
-                      <p className="text-[#8b949e]">Followers</p>
-                      <p className="font-bold text-white">{trader.followers.toLocaleString()}</p>
-                    </div>
-                    <div className="bg-[#161b22] p-2 rounded border border-[#21262d]">
-                      <p className="text-[#8b949e]">Accuracy</p>
-                      <p className="font-bold text-[#26a69a]">{trader.monthlyAccuracy}%</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Signal Details */}
-                <div className="p-6 space-y-4">
-                  {/* Symbol and Type */}
-                  <div className="flex justify-between items-center">
-                    <span className="text-2xl font-bold text-white">{signal.symbol}</span>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        signal.type === 'BUY'
-                          ? 'bg-[#26a69a]/20 text-[#26a69a]'
-                          : 'bg-[#ef5350]/20 text-[#ef5350]'
-                      }`}
-                    >
-                      {signal.type}
-                    </span>
-                  </div>
-
-                  {/* Price Levels */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-[#0d1117] p-3 rounded border border-[#21262d] space-y-1">
-                      <p className="text-xs text-[#8b949e]">Entry</p>
-                      <p className="font-mono font-bold text-white text-sm">{signal.entry}</p>
-                    </div>
-                    <div className="bg-[#0d1117] p-3 rounded border border-[#21262d] space-y-1">
-                      <p className="text-xs text-[#8b949e]">Stop Loss</p>
-                      <p className="font-mono font-bold text-[#ef5350] text-sm">{signal.sl}</p>
-                    </div>
-                    <div className="bg-[#0d1117] p-3 rounded border border-[#21262d] space-y-1">
-                      <p className="text-xs text-[#8b949e]">Take Profit</p>
-                      <p className="font-mono font-bold text-[#26a69a] text-sm">{signal.tp}</p>
+                    
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-[#161b22] p-2.5 rounded-lg border border-[#21262d] space-y-0.5">
+                        <p className="text-[10px] text-[#8b949e] font-medium">Win Rate</p>
+                        <p className="font-bold text-[#26a69a] text-sm">{trader.winRate}%</p>
+                      </div>
+                      <div className="bg-[#161b22] p-2.5 rounded-lg border border-[#21262d] space-y-0.5">
+                        <p className="text-[10px] text-[#8b949e] font-medium">Followers</p>
+                        <p className="font-bold text-white text-sm">{(trader.followers / 1000).toFixed(1)}k</p>
+                      </div>
+                      <div className="bg-[#161b22] p-2.5 rounded-lg border border-[#21262d] space-y-0.5">
+                        <p className="text-[10px] text-[#8b949e] font-medium">Accuracy</p>
+                        <p className="font-bold text-cyan-400 text-sm">{trader.monthlyAccuracy}%</p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Confidence Meter */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-[#8b949e]">Confidence Level</span>
-                      <span className="text-sm font-bold text-white">{signal.confidence}%</span>
-                    </div>
-                    <div className="w-full h-2 bg-[#0d1117] rounded-full overflow-hidden border border-[#21262d]">
-                      <div
-                        className={`h-full transition-all ${
-                          signal.confidence > 85
-                            ? 'bg-[#26a69a]'
-                            : signal.confidence > 70
-                            ? 'bg-[#2962ff]'
-                            : 'bg-yellow-500'
+                  {/* Signal Details */}
+                  <div className="p-5 space-y-4 flex-1">
+                    {/* Symbol and Type */}
+                    <div className="flex justify-between items-start gap-3">
+                      <span className="text-2xl font-bold text-white">{signal.symbol}</span>
+                      <span
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap ${
+                          signal.type === 'BUY'
+                            ? 'bg-[#26a69a]/20 text-[#26a69a] border border-[#26a69a]/30'
+                            : 'bg-[#ef5350]/20 text-red-400 border border-[#ef5350]/30'
                         }`}
-                        style={{ width: `${signal.confidence}%` }}
-                      />
+                      >
+                        {signal.type}
+                      </span>
+                    </div>
+
+                    {/* Price Levels */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-[#0d1117] p-3 rounded-lg border border-[#21262d] space-y-1">
+                        <p className="text-xs text-[#8b949e] font-medium">Entry</p>
+                        <p className="font-mono font-bold text-white text-sm">{signal.entry}</p>
+                      </div>
+                      <div className="bg-[#0d1117] p-3 rounded-lg border border-[#21262d] space-y-1">
+                        <p className="text-xs text-[#8b949e] font-medium">SL</p>
+                        <p className="font-mono font-bold text-red-400 text-sm">{signal.sl}</p>
+                      </div>
+                      <div className="bg-[#0d1117] p-3 rounded-lg border border-[#21262d] space-y-1">
+                        <p className="text-xs text-[#8b949e] font-medium">TP</p>
+                        <p className="font-mono font-bold text-[#26a69a] text-sm">{signal.tp}</p>
+                      </div>
+                    </div>
+
+                    {/* Confidence Meter */}
+                    <div className="space-y-2 py-2 border-y border-[#21262d]">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs text-[#8b949e] font-medium">Confidence</span>
+                        <span className="text-sm font-bold text-white">{signal.confidence}%</span>
+                      </div>
+                      <div className="w-full h-2.5 bg-[#0d1117] rounded-full overflow-hidden border border-[#21262d]">
+                        <div
+                          className={`h-full transition-all ${
+                            signal.confidence > 85
+                              ? 'bg-gradient-to-r from-[#26a69a] to-cyan-400'
+                              : signal.confidence > 70
+                              ? 'bg-gradient-to-r from-[#2962ff] to-blue-500'
+                              : 'bg-gradient-to-r from-yellow-500 to-orange-400'
+                          }`}
+                          style={{ width: `${signal.confidence}%` }}
+                        />
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Footer */}
-                <div className="p-4 border-t border-[#21262d] flex items-center justify-between bg-[#0d1117]">
-                  <div>
-                    {price === 'FREE' ? (
-                      <span className="text-lg font-bold text-[#26a69a]">{price}</span>
-                    ) : (
-                      <span className="text-lg font-bold text-white">{price}</span>
-                    )}
-                    {price !== 'FREE' && <p className="text-xs text-[#8b949e]">One-time</p>}
+                  {/* Footer CTA */}
+                  <div className="p-4 border-t border-[#21262d] bg-[#0d1117]/50 space-y-3">
+                    <div className="rounded-lg p-3 border bg-white/5 border-white/10">
+                      <p className="text-xs text-[#8b949e] mb-1">Price</p>
+                      <p className="text-lg font-bold text-white">
+                        {price}
+                      </p>
+                      <p className="text-xs text-[#8b949e] mt-1">One-time access</p>
+                    </div>
+                    <button
+                      onClick={() => handleBuySignal(signal, trader, priceValue)}
+                      className="w-full py-2.5 font-bold rounded-lg transition-all duration-300 transform group-hover:scale-105 flex items-center justify-center gap-2 bg-gradient-to-r from-[#2962ff] to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg shadow-blue-500/20"
+                    >
+                      <Plus className="h-4 w-4" /> Buy Signal
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleBuySignal(signal, trader, priceValue)}
-                    className="px-4 py-2 bg-[#26a69a] hover:bg-teal-600 text-white text-sm font-bold rounded-lg transition-all hover:shadow-lg hover:shadow-teal-500/30"
-                  >
-                    {price === 'FREE' ? 'Copy Signal' : 'Buy Signal'}
-                  </button>
                 </div>
               </div>
             );
@@ -609,48 +630,74 @@ export function SignalsPage() {
 
       {/* Signal Allocation Modal */}
       {allocationModal.isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-[#161b22] border border-[#21262d] rounded-lg max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-gradient-to-b from-[#161b22] to-[#0d1117] border border-[#21262d] rounded-2xl max-w-md w-full p-8 space-y-6 shadow-2xl shadow-teal-500/10 animate-in scale-95 md:scale-100">
+            {/* Header */}
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold text-white">Allocate Capital to Signal</h3>
+              <div className="space-y-1.5">
+                <h3 className="text-2xl font-bold bg-gradient-to-r from-[#26a69a] to-cyan-400 bg-clip-text text-transparent">
+                  Allocate Capital
+                </h3>
+                <p className="text-xs text-[#8b949e]">Fund your signal trading account</p>
+              </div>
               <button
                 onClick={() => setAllocationModal({ isOpen: false, signalId: '', amount: '' })}
-                className="text-[#8b949e] hover:text-white"
+                className="text-[#8b949e] hover:text-white hover:bg-[#21262d] p-2 rounded-lg transition-all"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="bg-[#0d1117] p-4 rounded-lg border border-[#21262d] space-y-2">
-              <p className="text-sm text-[#8b949e]">Available Balance</p>
-              <p className="text-2xl font-bold text-white">${(user?.balance ?? 0).toFixed(2)}</p>
+            {/* Balance Section */}
+            <div className="bg-gradient-to-br from-[#0d1117] to-[#161b22] p-5 rounded-xl border border-[#21262d] space-y-2">
+              <p className="text-xs text-[#8b949e] font-medium uppercase tracking-wider">Available Balance</p>
+              <p className="text-3xl font-bold text-white">${(user?.balance ?? 0).toFixed(2)}</p>
+              <div className="w-full h-1 bg-[#21262d] rounded-full overflow-hidden mt-3">
+                <div 
+                  className="h-full bg-gradient-to-r from-[#26a69a] to-cyan-500" 
+                  style={{ width: '100%' }}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-white">Amount to Allocate ($)</label>
-              <input
-                type="number"
-                value={allocationModal.amount}
-                onChange={(e) => setAllocationModal({ ...allocationModal, amount: e.target.value })}
-                placeholder="Enter amount"
-                className="w-full bg-[#0d1117] border border-[#21262d] rounded-lg px-4 py-2 text-white placeholder-[#8b949e] focus:outline-none focus:border-[#2962ff]"
-              />
-              <p className="text-xs text-[#8b949e]">The signal will trade with this amount and keep earnings</p>
+            {/* Input Section */}
+            <div className="space-y-3">
+              <label className="block text-sm font-bold text-white">Amount to Allocate</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8b949e] font-bold">$</span>
+                <input
+                  type="number"
+                  value={allocationModal.amount}
+                  onChange={(e) => setAllocationModal({ ...allocationModal, amount: e.target.value })}
+                  placeholder="0.00"
+                  className="w-full bg-[#0d1117] border border-[#21262d] rounded-lg pl-8 pr-4 py-3 text-white placeholder-[#8b949e] focus:outline-none focus:border-[#26a69a] focus:ring-2 focus:ring-[#26a69a]/30 transition-all text-lg font-semibold"
+                />
+              </div>
+              <p className="text-xs text-[#8b949e] flex items-center gap-1">
+                <span>💡</span> The signal provider will trade with this amount and reinvest profits
+              </p>
             </div>
 
-            <div className="flex gap-3">
+            {/* Info Banner */}
+            <div className="bg-[#26a69a]/5 rounded-lg p-3.5 border border-[#26a69a]/20 space-y-1">
+              <p className="text-xs font-bold text-[#26a69a] uppercase">Pro Tip</p>
+              <p className="text-xs text-[#8b949e]">Start with a smaller amount to evaluate the signal provider's performance before increasing your allocation.</p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setAllocationModal({ isOpen: false, signalId: '', amount: '' })}
-                className="flex-1 py-2 border border-[#21262d] text-white rounded-lg hover:bg-[#0d1117] transition-all"
+                className="flex-1 py-3 border border-[#21262d] text-white rounded-lg hover:bg-[#21262d] transition-all font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAllocateCapital}
                 disabled={!allocationModal.amount || parseFloat(allocationModal.amount) <= 0 || parseFloat(allocationModal.amount) > (user?.balance ?? 0)}
-                className="flex-1 py-2 bg-[#26a69a] text-white font-bold rounded-lg hover:bg-teal-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 bg-gradient-to-r from-[#26a69a] to-cyan-500 hover:from-teal-500 hover:to-cyan-600 text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:from-[#8b949e] disabled:to-[#8b949e] shadow-lg shadow-teal-500/20 disabled:shadow-none"
               >
-                Allocate
+                Allocate Capital
               </button>
             </div>
           </div>

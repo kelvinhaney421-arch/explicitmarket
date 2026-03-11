@@ -35,37 +35,71 @@ export function SignalManagementTabComponent({
     }));
   };
 
-  const handleAddSignal = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (signalForm.providerName && signalForm.symbol && signalForm.confidence && signalForm.followers && signalForm.cost && signalForm.winRate && signalForm.trades && signalForm.avgReturn) {
-      if (editingSignalId) {
-        editSignalTemplate(editingSignalId, {
-          providerName: signalForm.providerName,
-          description: signalForm.description,
-          symbol: signalForm.symbol,
-          confidence: parseFloat(signalForm.confidence),
-          followers: parseFloat(signalForm.followers),
-          cost: parseFloat(signalForm.cost),
-          winRate: parseFloat(signalForm.winRate),
-          trades: parseFloat(signalForm.trades),
-          avgReturn: parseFloat(signalForm.avgReturn)
-        });
-        setEditingSignalId(null);
-      } else {
-        addSignalTemplate(
-          signalForm.providerName,
-          signalForm.description,
-          signalForm.symbol,
-          parseFloat(signalForm.confidence),
-          parseFloat(signalForm.followers),
-          parseFloat(signalForm.cost),
-          parseFloat(signalForm.winRate),
-          parseFloat(signalForm.trades),
-          parseFloat(signalForm.avgReturn)
-        );
-      }
-      resetSignalForm();
+  const handleAddSignal = (e?: any) => {
+    if (e?.preventDefault) {
+      e.preventDefault();
     }
+    if (!signalForm.providerName) {
+      alert('❌ Provider Name is required');
+      return;
+    }
+    if (!signalForm.symbol) {
+      alert('❌ Trading Pair/Symbol is required');
+      return;
+    }
+    if (!signalForm.confidence) {
+      alert('❌ Confidence Level is required');
+      return;
+    }
+    if (!signalForm.followers) {
+      alert('❌ Followers is required');
+      return;
+    }
+    if (!signalForm.cost) {
+      alert('❌ Subscription Cost is required');
+      return;
+    }
+    if (!signalForm.winRate) {
+      alert('❌ Win Rate is required');
+      return;
+    }
+    if (!signalForm.trades) {
+      alert('❌ Total Signals Provided is required');
+      return;
+    }
+    if (!signalForm.avgReturn) {
+      alert('❌ Average Return is required');
+      return;
+    }
+
+    if (editingSignalId) {
+      editSignalTemplate(editingSignalId, {
+        providerName: signalForm.providerName,
+        description: signalForm.description,
+        symbol: signalForm.symbol,
+        confidence: parseFloat(signalForm.confidence),
+        followers: parseFloat(signalForm.followers),
+        cost: parseFloat(signalForm.cost),
+        winRate: parseFloat(signalForm.winRate),
+        trades: parseFloat(signalForm.trades),
+        avgReturn: parseFloat(signalForm.avgReturn)
+      });
+      setEditingSignalId(null);
+      alert('✅ Signal template updated successfully');
+    } else {
+      addSignalTemplate(
+        signalForm.providerName,
+        signalForm.description,
+        signalForm.symbol,
+        parseFloat(signalForm.confidence),
+        parseFloat(signalForm.followers),
+        parseFloat(signalForm.cost),
+        parseFloat(signalForm.winRate),
+        parseFloat(signalForm.trades),
+        parseFloat(signalForm.avgReturn)
+      );
+    }
+    resetSignalForm();
   };
 
   const resetSignalForm = () => {
@@ -115,7 +149,7 @@ export function SignalManagementTabComponent({
               placeholder="e.g., FX Master Pro"
               value={signalForm.providerName}
               onChange={(e) => updateFormField('providerName', e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddSignal(e as any)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddSignal()}
               className="w-full px-4 py-2 bg-[#0d1117] border border-[#21262d] text-white rounded-lg focus:outline-none focus:border-[#2962ff] transition-colors"
             />
           </div>
@@ -128,7 +162,7 @@ export function SignalManagementTabComponent({
               step="0.01"
               value={signalForm.cost}
               onChange={(e) => updateFormField('cost', e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddSignal(e as any)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddSignal()}
               className="w-full px-4 py-2 bg-[#0d1117] border border-[#21262d] text-white rounded-lg focus:outline-none focus:border-[#2962ff] transition-colors"
             />
           </div>
@@ -140,7 +174,7 @@ export function SignalManagementTabComponent({
               placeholder="78"
               value={signalForm.winRate}
               onChange={(e) => updateFormField('winRate', e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddSignal(e as any)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddSignal()}
               className="w-full px-4 py-2 bg-[#0d1117] border border-[#21262d] text-white rounded-lg focus:outline-none focus:border-[#2962ff] transition-colors"
             />
           </div>
@@ -152,7 +186,7 @@ export function SignalManagementTabComponent({
               placeholder="342"
               value={signalForm.trades}
               onChange={(e) => updateFormField('trades', e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddSignal(e as any)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddSignal()}
               className="w-full px-4 py-2 bg-[#0d1117] border border-[#21262d] text-white rounded-lg focus:outline-none focus:border-[#2962ff] transition-colors"
             />
           </div>
@@ -165,7 +199,7 @@ export function SignalManagementTabComponent({
               step="0.1"
               value={signalForm.avgReturn}
               onChange={(e) => updateFormField('avgReturn', e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleAddSignal(e as any)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddSignal()}
               className="w-full px-4 py-2 bg-[#0d1117] border border-[#21262d] text-white rounded-lg focus:outline-none focus:border-[#2962ff] transition-colors"
             />
           </div>
@@ -178,7 +212,7 @@ export function SignalManagementTabComponent({
             placeholder="EURUSD"
             value={signalForm.symbol}
             onChange={(e) => updateFormField('symbol', e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAddSignal(e as any)}
+            onKeyDown={(e) => e.key === 'Enter' && handleAddSignal()}
             className="w-full px-4 py-2 bg-[#0d1117] border border-[#21262d] text-white rounded-lg focus:outline-none focus:border-[#2962ff] transition-colors"
           />
         </div>

@@ -110,7 +110,7 @@ export function AdminPage() {
   // Signal approval outcomes and durations
   const [signalOutcomes, setSignalOutcomes] = useState<Record<string, 'win' | 'lose'>>({});
   const [signalDurations, setSignalDurations] = useState<Record<string, string>>({});
-  const [signalDurationTypes, setSignalDurationTypes] = useState<Record<string, 'hours' | 'days'>>({});
+  const [signalDurationTypes, setSignalDurationTypes] = useState<Record<string, 'minutes' | 'hours' | 'days'>>({});
 
   const filteredUsers = allUsers.filter(u => 
     u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) || 
@@ -642,6 +642,7 @@ export function AdminPage() {
                                 onChange={(e) => setBotDurations(prev => ({ ...prev, [`${bot.id}-type`]: e.target.value }))}
                                 className="w-full px-3 py-2 bg-[#161b22] border border-[#21262d] rounded text-white text-sm cursor-pointer focus:border-[#2962ff] focus:outline-none"
                               >
+                                <option value="minutes">Minutes</option>
                                 <option value="hours">Hours</option>
                                 <option value="days">Days</option>
                               </select>
@@ -845,9 +846,10 @@ export function AdminPage() {
                               <label className="text-xs text-[#8b949e] block mb-1">Unit</label>
                               <select
                                 value={signalDurationTypes[signal.id] || 'days'}
-                                onChange={(e) => setSignalDurationTypes(prev => ({ ...prev, [signal.id]: e.target.value as 'hours' | 'days' }))}
+                                onChange={(e) => setSignalDurationTypes(prev => ({ ...prev, [signal.id]: e.target.value as 'minutes' | 'hours' | 'days' }))}
                                 className="w-full px-3 py-2 bg-[#161b22] border border-[#21262d] rounded text-white text-sm cursor-pointer focus:border-[#2962ff] focus:outline-none"
                               >
+                                <option value="minutes">Minutes</option>
                                 <option value="hours">Hours</option>
                                 <option value="days">Days</option>
                               </select>

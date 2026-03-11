@@ -103,7 +103,7 @@ export type PurchasedBot = {
   performance: number;
   dailyReturn?: number;
   durationValue?: string;
-  durationType?: 'hours' | 'days';
+  durationType?: 'minutes' | 'hours' | 'days';
   maxDurationMs?: number;
   endDate?: number;
   outcome?: 'win' | 'lose';
@@ -124,7 +124,7 @@ export type PurchasedSignal = {
   earnings: number;
   totalEarningsRealized?: number;
   durationValue?: string;
-  durationType?: 'hours' | 'days';
+  durationType?: 'minutes' | 'hours' | 'days';
   endDate?: number;
   outcome?: 'win' | 'lose';
   activeTrades?: any[];
@@ -143,7 +143,7 @@ export type CopyTrade = {
   startDate: number;
   endDate?: number;
   durationValue: string;
-  durationType: 'hours' | 'days';
+  durationType: 'minutes' | 'hours' | 'days';
   winRate: string;
   risk: 'Low' | 'Medium' | 'High';
   performance?: number;

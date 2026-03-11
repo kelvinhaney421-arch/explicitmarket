@@ -156,10 +156,10 @@ interface StoreContextType {
   purchaseBot: (botId: string, botName: string, price: number, performance: number) => void;
   purchaseSignal: (signalId: string, providerName: string, allocation: number, winRate: number) => void;
   approveBotPurchase: (botPurchaseId: string) => void; // First approval - just approve purchase
-  approveBotActivation: (botPurchaseId: string, durationValue: string, durationType: 'hours' | 'days', outcome: 'win' | 'lose') => void; // Second approval - activate with settings
+  approveBotActivation: (botPurchaseId: string, durationValue: string, durationType: 'minutes' | 'hours' | 'days', outcome: 'win' | 'lose') => void; // Second approval - activate with settings
   approveSignalPurchase: (signalPurchaseId: string) => void; // First approval - just approve purchase
   allocateSignalCapital: (signalPurchaseId: string, amount: number) => void;
-  approveSignalSubscription: (signalSubId: string, durationValue: string, durationType: 'hours' | 'days', outcome: 'win' | 'lose') => void; // Second approval - activate with settings
+  approveSignalSubscription: (signalSubId: string, durationValue: string, durationType: 'minutes' | 'hours' | 'days', outcome: 'win' | 'lose') => void; // Second approval - activate with settings
   allocateBotCapital: (botPurchaseId: string, amount: number) => void;
   setBotDuration: (botPurchaseId: string, durationDays: number) => void;
   pauseBot: (botPurchaseId: string) => void;
@@ -168,8 +168,8 @@ interface StoreContextType {
   terminateSignal: (signalSubId: string) => void;
   continueSignalTrading: (signalSubId: string) => void;
   // Copy Trading Methods
-  followTrader: (trader: any, allocation: number, durationValue: string, durationType: 'hours' | 'days') => void;
-  adminCreateCopyTrade: (userId: string, traderName: string, allocation: number, durationValue: string, durationType: 'hours' | 'days', risk: 'Low' | 'Medium' | 'High', performance?: number) => void;
+  followTrader: (trader: any, allocation: number, durationValue: string, durationType: 'minutes' | 'hours' | 'days') => void;
+  adminCreateCopyTrade: (userId: string, traderName: string, allocation: number, durationValue: string, durationType: 'minutes' | 'hours' | 'days', risk: 'Low' | 'Medium' | 'High', performance?: number) => void;
   stopCopyTrading: (copyTradeId: string) => void;
   closeCopyTrade: (copyTradeId: string, profit: number) => void;
   // Funded Account Methods
@@ -344,7 +344,9 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
           const now = Date.now();
           
           // Calculate end date based on duration
-          const durationMs = copy.durationType === 'hours' 
+          const durationMs = copy.durationType === 'minutes'
+            ? parseInt(copy.durationValue) * 60 * 1000
+            : copy.durationType === 'hours' 
             ? parseInt(copy.durationValue) * 60 * 60 * 1000
             : parseInt(copy.durationValue) * 24 * 60 * 60 * 1000;
           
@@ -562,58 +564,67 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
     return () => clearInterval(botInterval);
   }, [botActive, user, assets]);
 
-  // Bot Earnings Automation with Duration Control (every 10 seconds for testing, can adjust later)
+  // Bot Earnings Automation - Every 30 seconds with clear win/loss logic
   useEffect(() => {
     const botEarningsInterval = setInterval(() => {
       setPurchasedBots((prev) =>
         prev.map((bot) => {
+          // Skip if bot not active or no allocation
           if (bot.status !== 'ACTIVE' || bot.allocatedAmount === 0) return bot;
           
           const now = Date.now();
           
           // Check if bot duration has expired
           if (bot.endDate && now >= bot.endDate) {
-            // Auto-close bot - duration expired (don't refund allocation, user must terminate manually)
+            // Auto-close bot - duration expired
             return {
               ...bot,
               status: 'CLOSED'
             };
           }
           
-          // Generate profit/loss based on admin choice or random
+          // Calculate earnings based on daily return spread over 30-second intervals
+          // dailyReturn: 5-15 (representing 5%-15% daily return)
+          // There are 2880 intervals of 30 seconds in 24 hours (24 * 60 * 2)
           const dailyReturn = bot.dailyReturn || 10;
-          const hourlyReturn = (dailyReturn / 24) / 100; // Convert to hourly and percentage
-          const earning = bot.allocatedAmount * hourlyReturn;
+          const dailyReturnPercent = dailyReturn / 100; // Convert to decimal (e.g., 10 -> 0.1)
           
+          // Per 30-second interval: allocatedAmount * (dailyReturn% / 2880)
+          const baseEarning = bot.allocatedAmount * (dailyReturnPercent / 2880);
+          
+          // Apply win/loss outcome
           let profitOrLoss: number;
           if (bot.outcome === 'win') {
-            profitOrLoss = earning;
+            // WIN: Full earning
+            profitOrLoss = baseEarning;
           } else if (bot.outcome === 'lose') {
-            profitOrLoss = -earning * 0.5;
+            // LOSE: 50% loss from base earning
+            profitOrLoss = -baseEarning * 0.5;
           } else {
-            // Default random: 70% chance of profit, 30% chance of loss
-            profitOrLoss = Math.random() > 0.3 ? earning : -earning * 0.5;
+            // RANDOM: 70% chance of win, 30% chance of loss
+            profitOrLoss = Math.random() > 0.3 ? baseEarning : -baseEarning * 0.5;
           }
           
+          // Update totals
           const newTotalEarned = bot.totalEarned + Math.max(0, profitOrLoss);
           const newTotalLost = bot.totalLost + Math.max(0, -profitOrLoss);
           
-          // Check drawdown limit if set
-          const totalReturn = bot.allocatedAmount + newTotalEarned - newTotalLost;
-          const drawdownPercent = ((totalReturn - bot.allocatedAmount) / bot.allocatedAmount) * 100;
+          // Check drawdown limit
+          const currentValue = bot.allocatedAmount + newTotalEarned - newTotalLost;
+          const drawdownPercent = ((currentValue - bot.allocatedAmount) / bot.allocatedAmount) * 100;
           
           if (bot.maxDrawdown && drawdownPercent < -bot.maxDrawdown) {
-            // Drawdown limit exceeded - auto-stop bot
+            // Drawdown exceeded - stop bot and refund
             setAllUsers((prevUsers) =>
               prevUsers.map((u) =>
                 u.id === bot.userId
-                  ? { ...u, balance: (u.balance || 0) + totalReturn }
+                  ? { ...u, balance: (u.balance || 0) + currentValue }
                   : u
               )
             );
             
             if (user && user.id === bot.userId) {
-              const newBal = (user.balance || 0) + totalReturn;
+              const newBal = (user.balance || 0) + currentValue;
               setUser({ ...user, balance: newBal });
               setAccount((prev) => ({ ...prev, balance: newBal }));
             }
@@ -623,12 +634,12 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
               status: 'CLOSED',
               totalEarned: newTotalEarned,
               totalLost: newTotalLost,
-              allocatedAmount: totalReturn,
+              allocatedAmount: currentValue,
               endDate: Date.now()
             };
           }
           
-          // Update user's balance in allUsers
+          // Update user balance in allUsers
           setAllUsers((prevUsers) =>
             prevUsers.map((u) =>
               u.id === bot.userId
@@ -637,7 +648,7 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
             )
           );
           
-          // Also update current user's account if they own this bot
+          // Update current user's account if they own this bot
           if (user && user.id === bot.userId) {
             setAccount((prev) => ({
               ...prev,
@@ -649,41 +660,41 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
             ...bot,
             totalEarned: newTotalEarned,
             totalLost: newTotalLost,
-            allocatedAmount: bot.allocatedAmount + profitOrLoss // Compound earnings
+            allocatedAmount: bot.allocatedAmount + profitOrLoss // Running total with compounded earnings
           };
         })
       );
-    }, 10000); // Every 10 seconds (for testing/visibility)
+    }, 30000); // Every 30 seconds
     
     return () => clearInterval(botEarningsInterval);
   }, [user]);
 
-  // Signal Earnings Simulation (every 15 seconds)
+  // Signal Earnings Simulation (every 5 seconds with win rate-based spread calculation)
   useEffect(() => {
     const signalEarningsInterval = setInterval(() => {
       setPurchasedSignals((prev) =>
         prev.map((signal) => {
-          if (signal.status !== 'ACTIVE') return signal;
+          if (signal.status !== 'ACTIVE' || !signal.allocation || !signal.endDate || !signal.startedAt) return signal;
           
           const now = Date.now();
           
           // Check if signal duration has expired
-          if (signal.endDate && now >= signal.endDate) {
+          if (now >= signal.endDate) {
             // Auto-close signal - duration expired
-            const totalReturn = signal.allocation + signal.earnings;
+            // Refund allocation + final earnings to user
+            const finalRefund = signal.allocation + signal.earnings;
             
-            // Refund allocation to user
             setAllUsers((prevUsers) =>
               prevUsers.map((u) =>
                 u.id === signal.userId
-                  ? { ...u, balance: (u.balance || 0) + signal.allocation }
+                  ? { ...u, balance: (u.balance || 0) + finalRefund }
                   : u
               )
             );
             
             // Update current user's balance if they're logged in
             if (user && user.id === signal.userId) {
-              const newBal = (user.balance || 0) + signal.allocation;
+              const newBal = (user.balance || 0) + finalRefund;
               setUser({ ...user, balance: newBal });
               setAccount((prev) => ({ ...prev, balance: newBal }));
             }
@@ -691,29 +702,47 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
             return {
               ...signal,
               status: 'CLOSED',
-              endDate: Date.now()
+              endDate: now
             };
           }
           
-          // Simulate signal trades based on outcome
-          const potentialEarning = 25 + Math.random() * 75; // $25-$100 per trade
+          // Calculate total duration and number of 5-second intervals
+          const totalDurationMs = signal.endDate - signal.startedAt;
+          const totalIntervals = Math.ceil(totalDurationMs / 5000); // Total 5-second intervals in duration
           
-          let earning: number;
+          // Calculate per-interval earning/loss based on allocation * winRate
+          const winRatePercent = signal.winRate / 100; // Convert to decimal (e.g., 75 -> 0.75)
+          let perIntervalEarning: number;
+          
           if (signal.outcome === 'win') {
-            earning = potentialEarning;
+            // WIN: earning = allocation * winRate%, spread across duration
+            // Example: $1000 allocation * 0.75 = $750 total spread across all intervals
+            const totalEarning = signal.allocation * winRatePercent;
+            perIntervalEarning = totalEarning / totalIntervals;
           } else if (signal.outcome === 'lose') {
-            earning = -potentialEarning * 0.5;
+            // LOSE: loss = allocation * winRate%, spread across duration
+            // Example: $1000 allocation * 0.75 = $750 total loss spread across all intervals
+            const totalLoss = signal.allocation * winRatePercent;
+            perIntervalEarning = -totalLoss / totalIntervals;
           } else {
-            // Default random: use win rate
-            const shouldProfit = Math.random() > (100 - signal.winRate) / 100;
-            earning = shouldProfit ? potentialEarning : -potentialEarning * 0.5;
+            // RANDOM: use winRate% probability each interval
+            // If profit interval: earning = allocation * winRate% / totalIntervals
+            // If loss interval: loss = allocation * winRate% / totalIntervals
+            const shouldProfit = Math.random() > (1 - winRatePercent);
+            if (shouldProfit) {
+              const totalEarning = signal.allocation * winRatePercent;
+              perIntervalEarning = totalEarning / totalIntervals;
+            } else {
+              const totalLoss = signal.allocation * winRatePercent;
+              perIntervalEarning = -totalLoss / totalIntervals;
+            }
           }
           
           // Update user's balance in allUsers
           setAllUsers((prevUsers) =>
             prevUsers.map((u) =>
               u.id === signal.userId
-                ? { ...u, balance: (u.balance || 0) + earning }
+                ? { ...u, balance: (u.balance || 0) + perIntervalEarning }
                 : u
             )
           );
@@ -722,18 +751,18 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
           if (user && user.id === signal.userId) {
             setAccount((prev) => ({
               ...prev,
-              balance: prev.balance + earning
+              balance: prev.balance + perIntervalEarning
             }));
           }
           
           return {
             ...signal,
-            earnings: signal.earnings + earning,
+            earnings: signal.earnings + perIntervalEarning,
             tradesFollowed: signal.tradesFollowed + 1
           };
         })
       );
-    }, 15000); // Every 15 seconds (for testing/visibility)
+    }, 5000); // Every 5 seconds
     
     return () => clearInterval(signalEarningsInterval);
   }, [user]);
@@ -1028,24 +1057,36 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
       dailyReturn: Math.random() * (15 - 5) + 5 // 5-15% daily
     };
     setPurchasedBots((prev) => [...prev, newBot]);
-    // Deduct from balance
+    
+    // Deduct from balance AND update all user states
+    const newBal = user.balance - price;
     setAccount((prev) => ({
       ...prev,
-      balance: prev.balance - price
+      balance: newBal
     }));
+    setUser({ ...user, balance: newBal });
+    setAllUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, balance: newBal } : u))
+    );
+    
     alert('✅ Bot purchase request sent. Awaiting admin approval.');
   };
 
 
-  const purchaseSignal = (signalId: string, providerName: string, allocation: number, winRate: number) => {
-    // Just create the signal in PENDING_APPROVAL - don't deduct balance yet
+  const purchaseSignal = (signalId: string, providerName: string, price: number, winRate: number) => {
+    if (!user || user.balance === undefined || user.balance < price) {
+      alert('Insufficient balance for signal subscription');
+      return;
+    }
+    
+    // Create the signal with 0 allocation (user allocates capital later)
     const newSignal: PurchasedSignal = {
       id: generateId(),
       userId: user?.id || '',
       signalId,
       providerName,
-      allocation,
-      cost: 0,
+      allocation: 0,  // Allocation is set later by user, not at purchase time
+      cost: price,    // Store the purchase price separately
       status: 'PENDING_APPROVAL',
       subscribedAt: Date.now(),
       approvedAt: undefined,
@@ -1055,8 +1096,23 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
       totalEarningsRealized: 0,
       activeTrades: []
     };
+    
     setPurchasedSignals((prev) => [...prev, newSignal]);
-    alert('✅ Signal subscription request sent. Awaiting admin approval.');
+    
+    // Deduct signal subscription price from user balance
+    setAccount((prev) => ({
+      ...prev,
+      balance: prev.balance - price
+    }));
+    
+    // Update user balance in allUsers
+    const newBal = (user.balance || 0) - price;
+    setUser({ ...user, balance: newBal });
+    setAllUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, balance: newBal } : u))
+    );
+    
+    alert(`✅ Signal subscription purchased for $${price.toFixed(2)}. Awaiting admin approval to allocate capital.`);
   };
 
 
@@ -1087,7 +1143,14 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
       )
     );
     
-    // DO NOT deduct balance yet - that happens on admin activation approval
+    // Deduct allocation from user balance immediately (like bots)
+    const newBal = user.balance - amount;
+    setUser({ ...user, balance: newBal });
+    setAccount((prev) => ({ ...prev, balance: newBal }));
+    setAllUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, balance: newBal } : u))
+    );
+    
     alert(`✅ Allocated $${amount.toFixed(2)} for signal. Awaiting admin activation approval.`);
   };
 
@@ -1103,7 +1166,7 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
     alert('✅ Bot purchase approved. User can now allocate capital.');
   };
 
-  const approveBotActivation = (botPurchaseId: string, durationValue: string = '7', durationType: 'hours' | 'days' = 'days', outcome: 'win' | 'lose' = 'win') => {
+  const approveBotActivation = (botPurchaseId: string, durationValue: string = '7', durationType: 'minutes' | 'hours' | 'days' = 'days', outcome: 'win' | 'lose' = 'win') => {
     const bot = purchasedBots.find(b => b.id === botPurchaseId);
     if (!bot) return;
 
@@ -1122,7 +1185,9 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
 
     const now = Date.now();
     const durationNum = parseInt(durationValue);
-    const durationMs = durationType === 'hours'
+    const durationMs = durationType === 'minutes'
+      ? durationNum * 60 * 1000
+      : durationType === 'hours'
       ? durationNum * 60 * 60 * 1000
       : durationNum * 24 * 60 * 60 * 1000;
     const endDate = now + durationMs;
@@ -1161,7 +1226,7 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
     );
   };
 
-  const approveSignalSubscription = (signalSubId: string, durationValue: string = '7', durationType: 'hours' | 'days' = 'days', outcome: 'win' | 'lose' = 'win') => {
+  const approveSignalSubscription = (signalSubId: string, durationValue: string = '7', durationType: 'minutes' | 'hours' | 'days' = 'days', outcome: 'win' | 'lose' = 'win') => {
     const signal = purchasedSignals.find(s => s.id === signalSubId);
     if (!signal) return;
     
@@ -1171,50 +1236,18 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
       return;
     }
     
-    // Check if user has sufficient balance
-    const targetUser = allUsers.find(u => u.id === signal.userId);
-    if (!targetUser || (targetUser.balance || 0) < signal.allocation) {
-      alert('❌ Insufficient balance for signal allocation');
-      return;
-    }
-    
-    // Subtract allocation from user's balance
-    setAllUsers((prevUsers) =>
-      prevUsers.map((u) =>
-        u.id === signal.userId
-          ? { ...u, balance: Math.max(0, (u.balance || 0) - signal.allocation) }
-          : u
-      )
-    );
-    
-    // Update current user's balance if they're logged in
-    if (user && user.id === signal.userId) {
-      const newBal = Math.max(0, (user.balance || 0) - signal.allocation);
-      setUser({ ...user, balance: newBal });
-      setAccount((prev) => ({ ...prev, balance: newBal }));
-    }
-    
     setPurchasedSignals((prev) =>
       prev.map((sig) => {
         if (sig.id === signalSubId) {
           // Calculate end date based on duration
           const now = Date.now();
-          const durationMs = durationType === 'hours' 
+          const durationMs = durationType === 'minutes'
+            ? parseInt(durationValue) * 60 * 1000
+            : durationType === 'hours' 
             ? parseInt(durationValue) * 60 * 60 * 1000
             : parseInt(durationValue) * 24 * 60 * 60 * 1000;
           const endDate = now + durationMs;
           
-          // start first trade automatically when approved
-          const tradeEndMs = (15 + Math.random() * 6) * 60 * 1000; // 15-21 minutes
-          const expectedProfit = sig.allocation * (sig.winRate / 100);
-          const newTrade = {
-            id: generateId(),
-            startTime: now,
-            expectedEndTime: now + tradeEndMs,
-            expectedProfit,
-            currentEarnings: 0,
-            completed: false
-          };
           return {
             ...sig,
             status: 'ACTIVE',
@@ -1223,12 +1256,13 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
             durationType,
             endDate,
             outcome,
-            activeTrades: [newTrade]
+            activeTrades: []
           };
         }
         return sig;
       })
     );
+    alert(`✅ Signal activated! Duration: ${durationValue} ${durationType}. Earnings will spread across this period.`);
   };
 
   const allocateBotCapital = (botPurchaseId: string, amount: number) => {
@@ -1823,7 +1857,7 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
   };
 
   // Copy Trading Methods
-  const followTrader = (trader: any, allocation: number, durationValue: string, durationType: 'hours' | 'days') => {
+  const followTrader = (trader: any, allocation: number, durationValue: string, durationType: 'minutes' | 'hours' | 'days') => {
     if (!user) return;
     
     // Check if user has sufficient balance
@@ -1878,7 +1912,7 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
     traderName: string,
     allocation: number,
     durationValue: string,
-    durationType: 'hours' | 'days',
+    durationType: 'minutes' | 'hours' | 'days',
     risk: 'Low' | 'Medium' | 'High',
     traderReturn: number = 0,
     performance?: number

@@ -50,7 +50,7 @@ export function BotPage() {
       type: 'High Frequency',
       risk: 'High',
       return: 124,
-      price: 149.99,
+      price: 249.99,
       color: 'from-purple-500 to-pink-500',
       description: 'Fast-paced trading bot optimized for quick profits',
       trades: 324,
@@ -63,8 +63,8 @@ export function BotPage() {
       name: 'Trend Hunter V2',
       type: 'Swing Trading',
       risk: 'Medium',
-      return: 45,
-      price: 99.99,
+      return: 175,
+      price: 599.99,
       color: 'from-blue-500 to-cyan-500',
       description: 'Captures medium-term market trends',
       trades: 156,
@@ -77,8 +77,8 @@ export function BotPage() {
       name: 'Gold Rush AI',
       type: 'Commodities',
       risk: 'Medium',
-      return: 68,
-      price: 199.99,
+      return: 168,
+      price: 219.99,
       color: 'from-yellow-500 to-orange-500',
       description: 'Specialized in precious metals trading',
       trades: 89,
@@ -91,8 +91,8 @@ export function BotPage() {
       name: 'Smart Grid',
       type: 'Arbitrage',
       risk: 'Low',
-      return: 12,
-      price: 49.99,
+      return: 212,
+      price: 749.99,
       color: 'from-green-500 to-emerald-500',
       description: 'Safe arbitrage strategy with consistent returns',
       trades: 204,
@@ -105,8 +105,8 @@ export function BotPage() {
       name: 'Neural Trader',
       type: 'AI Prediction',
       risk: 'High',
-      return: 156,
-      price: 299.99,
+      return: 356,
+      price: 999.99,
       color: 'from-red-500 to-rose-500',
       description: 'Advanced AI-powered prediction engine',
       trades: 421,
@@ -120,9 +120,9 @@ export function BotPage() {
       type: 'Crypto Only',
       risk: 'High',
       return: 89,
-      price: 0,
+      price: 149.99,
       color: 'from-indigo-500 to-violet-500',
-      description: 'Free trial - Specialized in cryptocurrency markets',
+      description: 'Specialized in cryptocurrency markets',
       trades: 267,
       winRate: 66,
       maxDrawdown: 16,
@@ -298,96 +298,114 @@ export function BotPage() {
       {/* My Purchased Bots Section */}
       {purchasedBots.length > 0 && (
         <div className="space-y-6">
-          <div>
+          <div className="space-y-2">
             <h3 className="text-2xl font-bold text-white mb-2">My Purchased Bots</h3>
-            <p className="text-[#8b949e]">Bots you own and can allocate capital to</p>
+            <p className="text-[#8b949e]">Bots you own with real-time performance monitoring</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
             {purchasedBots.map((purchase) => (
               <div
                 key={purchase.id}
-                className="bg-[#161b22] border border-[#21262d] rounded-lg overflow-hidden hover:border-[#26a69a] transition-all"
+                className="group relative bg-gradient-to-br from-[#161b22] via-[#161b22] to-[#0d1117] border border-[#21262d] rounded-2xl overflow-hidden transition-all duration-300 hover:border-transparent hover:shadow-2xl hover:shadow-blue-500/20"
               >
-                <div className="h-2 bg-gradient-to-r from-[#26a69a] to-cyan-500" />
+                {/* Animated Background Gradient */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#2962ff]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 
-                <div className="p-6 space-y-4">
-                  <div className="space-y-1">
-                    <h4 className="text-lg font-bold text-white">{purchase.botName}</h4>
-                    <div className="flex items-center gap-2">
+                {/* Top Accent Bar */}
+                <div className="h-1.5 bg-gradient-to-r from-[#2962ff] to-blue-600" />
+
+                {/* Content */}
+                <div className="relative z-10 flex flex-col h-full">
+                  {/* Header */}
+                  <div className="p-6 space-y-3 border-b border-[#21262d]">
+                    <div className="space-y-1.5">
+                      <h4 className="text-xl font-bold text-white">{purchase.botName}</h4>
                       <span
-                        className={`text-xs font-bold px-2 py-1 rounded-full ${
+                        className={`inline-flex text-xs font-bold px-3 py-1.5 rounded-full border ${
                           purchase.status === 'ACTIVE'
-                            ? 'bg-[#26a69a]/20 text-[#26a69a]'
+                            ? 'bg-[#26a69a]/10 text-[#26a69a] border-[#26a69a]/30'
                             : purchase.status === 'APPROVED_FOR_ALLOCATION'
-                            ? 'bg-[#2962ff]/20 text-[#2962ff]'
+                            ? 'bg-[#2962ff]/10 text-[#2962ff] border-[#2962ff]/30'
                             : purchase.status === 'PENDING_APPROVAL'
-                            ? 'bg-yellow-500/20 text-yellow-500'
-                            : 'bg-[#8b949e]/20 text-[#8b949e]'
+                            ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
+                            : purchase.status === 'PAUSED'
+                            ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
+                            : 'bg-[#8b949e]/10 text-[#8b949e] border-[#8b949e]/30'
                         }`}
                       >
-                        {purchase.status === 'PENDING_APPROVAL' ? 'Pending Approval' : 
-                         purchase.status === 'APPROVED_FOR_ALLOCATION' ? 'Approved - Allocate Capital' :
+                        {purchase.status === 'PENDING_APPROVAL' ? '⏳ Pending Approval' : 
+                         purchase.status === 'APPROVED_FOR_ALLOCATION' ? '✓ Approved - Allocate Capital' :
+                         purchase.status === 'PAUSED' ? '⏸ Paused' :
+                         purchase.status === 'ACTIVE' ? '✓ Active' :
                          purchase.status}
                       </span>
                     </div>
                   </div>
 
-                  {(purchase.status === 'ACTIVE' || purchase.status === 'APPROVED_FOR_ALLOCATION') && (
-                    <>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-[#0d1117] p-3 rounded-lg border border-[#21262d]">
-                          <span className="text-xs text-[#8b949e]">Allocated</span>
-                          <span className="block text-base font-bold text-white">
-                            ${purchase.allocatedAmount.toFixed(2)}
-                          </span>
-                        </div>
-                        <div className="bg-[#0d1117] p-3 rounded-lg border border-[#21262d]">
-                          <span className="text-xs text-[#8b949e]">Earned</span>
-                          <span className="block text-base font-bold text-[#26a69a]">
-                            ${purchase.totalEarned.toFixed(2)}
-                          </span>
-                        </div>
-                      </div>
-
-                      {purchase.status === 'APPROVED_FOR_ALLOCATION' && purchase.allocatedAmount === 0 ? (
-                        <button
-                          onClick={() => setAllocationModal({ isOpen: true, botId: purchase.id, amount: '' })}
-                          className="w-full py-2 bg-[#2962ff] hover:bg-blue-700 text-white rounded-lg font-bold flex items-center justify-center gap-2 transition-all"
-                        >
-                          <Plus className="h-4 w-4" /> Allocate Capital
-                        </button>
-                      ) : purchase.status === 'ACTIVE' && purchase.allocatedAmount > 0 ? (
-                        <div className="space-y-2">
-                          <div className="text-xs text-[#8b949e] text-center">
-                            Bot is actively trading with ${purchase.allocatedAmount.toFixed(2)}
+                  {/* Body */}
+                  <div className="p-6 space-y-4 flex-1">
+                    {(purchase.status === 'ACTIVE' || purchase.status === 'APPROVED_FOR_ALLOCATION') && (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-[#0d1117] p-4 rounded-lg border border-[#21262d] space-y-1.5">
+                            <span className="text-xs text-[#8b949e] font-medium">Allocated</span>
+                            <span className="block text-lg font-bold text-white">
+                              ${purchase.allocatedAmount.toFixed(2)}
+                            </span>
                           </div>
+                          <div className="bg-[#0d1117] p-4 rounded-lg border border-[#21262d] space-y-1.5">
+                            <span className="text-xs text-[#8b949e] font-medium">Earned</span>
+                            <span className="block text-lg font-bold text-[#26a69a]">
+                              ${purchase.totalEarned.toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {purchase.status === 'PENDING_APPROVAL' && (
+                      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 text-center space-y-2">
+                        <p className="text-yellow-400 text-sm font-bold">⏳ Awaiting Admin Review</p>
+                        <p className="text-xs text-[#8b949e]">Your bot will be reviewed and activated shortly</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Footer Actions */}
+                  <div className="p-4 border-t border-[#21262d] bg-[#0d1117]/50 space-y-2">
+                    {purchase.status === 'APPROVED_FOR_ALLOCATION' && purchase.allocatedAmount === 0 ? (
+                      <button
+                        onClick={() => setAllocationModal({ isOpen: true, botId: purchase.id, amount: '' })}
+                        className="w-full py-2.5 bg-gradient-to-r from-[#2962ff] to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-500/20"
+                      >
+                        <Plus className="h-4 w-4" /> Allocate Capital
+                      </button>
+                    ) : purchase.status === 'ACTIVE' && purchase.allocatedAmount > 0 ? (
+                      <div className="space-y-2">
+                        <div className="text-xs text-[#8b949e] text-center bg-[#161b22] p-2.5 rounded-lg border border-[#21262d]">
+                          Trading with ${purchase.allocatedAmount.toFixed(2)}
+                        </div>
+                        <div className="flex gap-2">
                           <button
                             onClick={() => pauseBot(purchase.id)}
-                            className="w-full py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-500 rounded-lg font-bold text-sm transition-all border border-yellow-500/30"
+                            className="flex-1 py-2 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 rounded-lg font-bold text-sm transition-all border border-yellow-500/30"
                           >
-                            ⏸ Pause Bot
+                            ⏸ Pause
                           </button>
                           <button
                             onClick={() => terminateBot(purchase.id)}
-                            className="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-bold text-sm transition-all border border-red-500/30 flex items-center justify-center gap-2"
+                            className="flex-1 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-bold text-sm transition-all border border-red-500/30 flex items-center justify-center gap-2"
                           >
-                            <Trash2 className="h-4 w-4" /> Terminate Bot
+                            <Trash2 className="h-3.5 w-3.5" /> Stop
                           </button>
                         </div>
-                      ) : null}
-                    </>
-                  )}
-
-                  {purchase.status === 'PAUSED' && (
-                    <>
-                      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 text-center mb-3">
-                        <p className="text-yellow-500 text-sm font-bold">⏸ Bot is paused</p>
                       </div>
+                    ) : purchase.status === 'PAUSED' ? (
                       <div className="space-y-2">
                         <button
                           onClick={() => resumeBot(purchase.id)}
-                          className="w-full py-2 bg-[#26a69a] hover:bg-teal-600 text-white rounded-lg font-bold flex items-center justify-center gap-2 transition-all"
+                          className="w-full py-2.5 bg-gradient-to-r from-[#26a69a] to-teal-500 hover:from-teal-500 hover:to-teal-600 text-white rounded-lg font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-teal-500/20"
                         >
                           ▶ Resume Bot
                         </button>
@@ -395,11 +413,11 @@ export function BotPage() {
                           onClick={() => terminateBot(purchase.id)}
                           className="w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-bold text-sm transition-all border border-red-500/30 flex items-center justify-center gap-2"
                         >
-                          <Trash2 className="h-4 w-4" /> Terminate Bot
+                          <Trash2 className="h-4 w-4" /> Terminate
                         </button>
                       </div>
-                    </>
-                  )}
+                    ) : null}
+                  </div>
                 </div>
               </div>
             ))}
@@ -414,93 +432,110 @@ export function BotPage() {
           <p className="text-[#8b949e]">Choose from our collection of high-performance trading algorithms</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {allBots.map((bot) => (
             <div
               key={bot.id}
-              className="bg-[#161b22] border border-[#21262d] rounded-lg overflow-hidden hover:border-[#2962ff] transition-all group hover:shadow-lg hover:shadow-blue-500/10"
+              className="group relative bg-gradient-to-br from-[#161b22] via-[#161b22] to-[#0d1117] border border-[#21262d] rounded-xl overflow-hidden transition-all duration-300 hover:border-transparent hover:shadow-2xl hover:shadow-blue-500/20"
             >
-              {/* Top Gradient Bar */}
-              <div className={`h-2 bg-gradient-to-r ${bot.color}`} />
+              {/* Animated Background Gradient */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#2962ff]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              
+              {/* Top Accent Bar */}
+              <div className={`h-1 bg-gradient-to-r ${bot.color}`} />
+
+              {/* Premium Badge */}
+              {bot.isTemplate && (
+                <div className="absolute top-4 right-4 z-10">
+                  <span className="px-3 py-1 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full text-xs font-bold shadow-lg">
+                    ★ SPECIAL
+                  </span>
+                </div>
+              )}
 
               {/* Content */}
-              <div className="p-6 space-y-6">
+              <div className="relative z-10 p-6 space-y-5">
                 {/* Header */}
-                <div className="flex justify-between items-start gap-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="text-xl font-bold text-white group-hover:text-[#2962ff] transition-colors">
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <h4 className="text-xl font-bold text-white mb-1 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-blue-400 group-hover:to-cyan-400 group-hover:bg-clip-text transition-all">
                         {bot.name}
                       </h4>
-                      {bot.isTemplate && (
-                        <span className="text-xs px-2 py-0.5 bg-cyan-500/20 text-cyan-400 rounded font-bold">
-                          SPECIAL
-                        </span>
-                      )}
+                      <p className="text-sm text-[#8b949e] line-clamp-2">{bot.description}</p>
                     </div>
-                    <p className="text-sm text-[#8b949e]">{bot.description}</p>
                   </div>
-                  <span
-                    className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap ${
-                      bot.risk === 'High'
-                        ? 'bg-[#ef5350]/20 text-[#ef5350]'
-                        : bot.risk === 'Medium'
-                        ? 'bg-yellow-500/20 text-yellow-500'
-                        : 'bg-[#26a69a]/20 text-[#26a69a]'
-                    }`}
-                  >
-                    {bot.risk} Risk
-                  </span>
-                </div>
-
-                {/* Type */}
-                <div className="flex items-center gap-2">
-                  <span className="text-xs px-3 py-1 bg-[#2962ff]/20 text-[#2962ff] rounded-full font-medium">
-                    {bot.type}
-                  </span>
-                </div>
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-[#0d1117] p-3 rounded border border-[#21262d] space-y-1">
-                    <span className="text-xs text-[#8b949e] flex items-center gap-1">
-                      <Zap className="h-3 w-3" /> Return
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs px-3 py-1 bg-[#2962ff]/20 text-[#2962ff] rounded-full font-semibold border border-[#2962ff]/30">
+                      {bot.type}
                     </span>
+                    <span
+                      className={`text-xs px-3 py-1 rounded-full font-semibold border ${
+                        bot.risk === 'High'
+                          ? 'bg-[#ef5350]/10 text-[#ff6b6b] border-[#ef5350]/30'
+                          : bot.risk === 'Medium'
+                          ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
+                          : 'bg-[#26a69a]/10 text-[#26a69a] border-[#26a69a]/30'
+                      }`}
+                    >
+                      {bot.risk} Risk
+                    </span>
+                  </div>
+                </div>
+
+                {/* Stats Grid - Enhanced */}
+                <div className="grid grid-cols-3 gap-3 py-4 border-y border-[#21262d]">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1">
+                      <Zap className="h-3.5 w-3.5 text-[#26a69a]" />
+                      <span className="text-xs text-[#8b949e] font-medium">Return</span>
+                    </div>
                     <span className="text-lg font-bold text-[#26a69a]">+{bot.return}%</span>
                   </div>
-                  <div className="bg-[#0d1117] p-3 rounded border border-[#21262d] space-y-1">
-                    <span className="text-xs text-[#8b949e] flex items-center gap-1">
-                      <Award className="h-3 w-3" /> Win Rate
-                    </span>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1">
+                      <Award className="h-3.5 w-3.5 text-[#2962ff]" />
+                      <span className="text-xs text-[#8b949e] font-medium">Win Rate</span>
+                    </div>
                     <span className="text-lg font-bold text-white">{bot.winRate}%</span>
                   </div>
-                  <div className="bg-[#0d1117] p-3 rounded border border-[#21262d] space-y-1">
-                    <span className="text-xs text-[#8b949e] flex items-center gap-1">
-                      <Shield className="h-3 w-3" /> Drawdown
-                    </span>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1">
+                      <Shield className="h-3.5 w-3.5 text-yellow-500/80" />
+                      <span className="text-xs text-[#8b949e] font-medium">Drawdown</span>
+                    </div>
                     <span className="text-lg font-bold text-white">{bot.maxDrawdown}%</span>
                   </div>
                 </div>
 
-                {/* Stats */}
-                <div className="flex justify-between items-center text-xs text-[#8b949e]">
-                  <span>Trades executed: {bot.trades}</span>
+                {/* Trades Info */}
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-[#8b949e]">Trades executed</span>
+                  <span className="font-bold text-white">{bot.trades.toLocaleString()}</span>
                 </div>
 
-                {/* Footer */}
-                <div className="border-t border-[#21262d] pt-4 flex items-center justify-between">
-                  <div>
-                    <span className="text-2xl font-bold text-white">
-                      {bot.price === 0 ? 'FREE' : `$${bot.price}`}
-                    </span>
-                    {bot.price > 0 && <p className="text-xs text-[#8b949e]">Monthly subscription</p>}
-                    {bot.price === 0 && <p className="text-xs text-[#26a69a]">14-day free trial</p>}
+                {/* CTA Section */}
+                <div className="space-y-3 pt-2">
+                  <div className="bg-[#0d1117]/50 rounded-lg p-3 border border-[#21262d] space-y-1">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-xs text-[#8b949e]">
+                        {bot.price > 0 ? 'Monthly Price' : 'Offer'}
+                      </span>
+                      <span className={`text-2xl font-bold ${bot.price === 0 ? 'text-[#26a69a]' : 'text-white'}`}>
+                        {bot.price === 0 ? 'FREE' : `$${bot.price}`}
+                      </span>
+                    </div>
+                    {bot.price > 0 && <p className="text-xs text-[#8b949e]">Billed monthly</p>}
+                    {bot.price === 0 && <p className="text-xs text-[#26a69a]">14-day free trial included</p>}
                   </div>
+                  
                   <button
                     onClick={() => handleBuyBot(bot)}
-                    className="px-4 py-2 bg-[#2962ff] hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition-all hover:shadow-lg hover:shadow-blue-500/30"
+                    className="w-full py-2.5 bg-gradient-to-r from-[#2962ff] to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/30 transform group-hover:scale-105 flex items-center justify-center gap-2"
                   >
-                    {bot.price === 0 ? 'Try Bot' : 'Buy Bot'}
+                    <Plus className="h-4 w-4" />
+                    {bot.price === 0 ? 'Try Bot' : 'Subscribe Now'}
                   </button>
                 </div>
               </div>
@@ -521,48 +556,74 @@ export function BotPage() {
 
       {/* Capital Allocation Modal */}
       {allocationModal.isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-[#161b22] border border-[#21262d] rounded-lg max-w-md w-full p-6 space-y-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in">
+          <div className="bg-gradient-to-b from-[#161b22] to-[#0d1117] border border-[#21262d] rounded-2xl max-w-md w-full p-8 space-y-6 shadow-2xl shadow-blue-500/10 animate-in scale-95 md:scale-100">
+            {/* Header */}
             <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold text-white">Allocate Capital to Bot</h3>
+              <div className="space-y-1.5">
+                <h3 className="text-2xl font-bold bg-gradient-to-r from-[#2962ff] to-blue-400 bg-clip-text text-transparent">
+                  Allocate Capital
+                </h3>
+                <p className="text-xs text-[#8b949e]">Fund your bot trading account</p>
+              </div>
               <button
                 onClick={() => setAllocationModal({ isOpen: false, botId: '', amount: '' })}
-                className="text-[#8b949e] hover:text-white"
+                className="text-[#8b949e] hover:text-white hover:bg-[#21262d] p-2 rounded-lg transition-all"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="bg-[#0d1117] p-4 rounded-lg border border-[#21262d] space-y-2">
-              <p className="text-sm text-[#8b949e]">Available Balance</p>
-              <p className="text-2xl font-bold text-white">${(user?.balance ?? 0).toFixed(2)}</p>
+            {/* Balance Section */}
+            <div className="bg-gradient-to-br from-[#0d1117] to-[#161b22] p-5 rounded-xl border border-[#21262d] space-y-2">
+              <p className="text-xs text-[#8b949e] font-medium uppercase tracking-wider">Available Balance</p>
+              <p className="text-3xl font-bold text-white">${(user?.balance ?? 0).toFixed(2)}</p>
+              <div className="w-full h-1 bg-[#21262d] rounded-full overflow-hidden mt-3">
+                <div 
+                  className="h-full bg-gradient-to-r from-[#26a69a] to-cyan-500" 
+                  style={{ width: '100%' }}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-bold text-white">Amount to Allocate ($)</label>
-              <input
-                type="number"
-                value={allocationModal.amount}
-                onChange={(e) => setAllocationModal({ ...allocationModal, amount: e.target.value })}
-                placeholder="Enter amount"
-                className="w-full bg-[#0d1117] border border-[#21262d] rounded-lg px-4 py-2 text-white placeholder-[#8b949e] focus:outline-none focus:border-[#2962ff]"
-              />
-              <p className="text-xs text-[#8b949e]">The bot will trade with this amount and keep earnings</p>
+            {/* Input Section */}
+            <div className="space-y-3">
+              <label className="block text-sm font-bold text-white">Amount to Allocate</label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#8b949e] font-bold">$</span>
+                <input
+                  type="number"
+                  value={allocationModal.amount}
+                  onChange={(e) => setAllocationModal({ ...allocationModal, amount: e.target.value })}
+                  placeholder="0.00"
+                  className="w-full bg-[#0d1117] border border-[#21262d] rounded-lg pl-8 pr-4 py-3 text-white placeholder-[#8b949e] focus:outline-none focus:border-[#2962ff] focus:ring-2 focus:ring-[#2962ff]/30 transition-all text-lg font-semibold"
+                />
+              </div>
+              <p className="text-xs text-[#8b949e] flex items-center gap-1">
+                <span>💡</span> The bot will trade with this amount and reinvest earnings
+              </p>
             </div>
 
-            <div className="flex gap-3">
+            {/* Info Banner */}
+            <div className="bg-[#2962ff]/5 rounded-lg p-3.5 border border-[#2962ff]/20 space-y-1">
+              <p className="text-xs font-bold text-[#2962ff] uppercase">Pro Tip</p>
+              <p className="text-xs text-[#8b949e]">Start with a smaller amount and increase as you gain confidence in the bot's performance.</p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setAllocationModal({ isOpen: false, botId: '', amount: '' })}
-                className="flex-1 py-2 border border-[#21262d] text-white rounded-lg hover:bg-[#0d1117] transition-all"
+                className="flex-1 py-3 border border-[#21262d] text-white rounded-lg hover:bg-[#21262d] transition-all font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAllocateCapital}
                 disabled={!allocationModal.amount || parseFloat(allocationModal.amount) <= 0 || parseFloat(allocationModal.amount) > (user?.balance ?? 0)}
-                className="flex-1 py-2 bg-[#26a69a] text-white font-bold rounded-lg hover:bg-teal-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 py-3 bg-gradient-to-r from-[#26a69a] to-teal-500 hover:from-teal-500 hover:to-teal-600 text-white font-bold rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:from-[#8b949e] disabled:to-[#8b949e] shadow-lg shadow-teal-500/20 disabled:shadow-none"
               >
-                Allocate
+                Allocate Capital
               </button>
             </div>
           </div>
