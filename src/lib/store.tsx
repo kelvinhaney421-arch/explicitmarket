@@ -25,6 +25,7 @@ import {
   CreditCardDeposit } from
 './types';
 import { generateId, randomPriceChange } from './utils';
+import { supabase } from './supabaseClient';
 // Initial Market Data (Extended with 80+ pairs)
 const INITIAL_ASSETS: Asset[] = [
   // Forex
@@ -135,7 +136,7 @@ interface StoreContextType {
   isAuthenticated: boolean;
   theme: 'light' | 'dark';
   botActive: boolean;
-  login: (email: string, password?: string, signupData?: { fullName: string; phone: string; country: string; password: string }) => { success: boolean; isAdmin?: boolean; error?: string };
+  login: (email: string, password?: string, signupData?: { fullName: string; phone: string; country: string; password: string; referralCode?: string }) => Promise<{ success: boolean; isAdmin?: boolean; error?: string }>;
   logout: () => void;
   executeTrade: (
     symbol: string,
@@ -862,7 +863,7 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
     
     return () => clearInterval(signalEarningsInterval);
   }, [user]);
-  const login = (email: string, password?: string, signupData?: { fullName: string; phone: string; country: string; password: string }) => {
+  const login = async (email: string, password?: string, signupData?: { fullName: string; phone: string; country: string; password: string; referralCode?: string }) => {
     // Admin authentication
     if (email === 'admin@work.com' && password === 'admin') {
       const adminUser = allUsers.find(u => u.id === 'admin-1') || {
@@ -889,7 +890,7 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
       let loginUser: User;
 
       if (existingUser) {
-        // For login, verify password
+        // User exists in localStorage
         if (!signupData) {
           // Login attempt - check password
           if (existingUser.password !== password) {
@@ -901,8 +902,66 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
           return { success: false, error: 'Email already exists' };
         }
       } else {
-        // Create new user for signup
-        if (signupData) {
+        // User not in localStorage - check Supabase for cross-device login
+        if (!signupData) {
+          // This is a login attempt, not signup
+          try {
+            // Query Supabase for user by email
+            const { data: supabaseUsers, error: queryError } = await supabase
+              .from('user_profiles')
+              .select('*')
+              .eq('email', email)
+              .single();
+
+            if (queryError || !supabaseUsers) {
+              // User not found in Supabase
+              return { success: false, error: 'Account not found. Please sign up first.' };
+            }
+
+            // User found in Supabase - verify password
+            if (supabaseUsers.password !== password) {
+              return { success: false, error: 'Invalid email or password' };
+            }
+
+            // Password correct - fetch user's balance from Supabase
+            const { data: balanceData } = await supabase
+              .from('user_balances')
+              .select('balance')
+              .eq('user_id', supabaseUsers.id)
+              .single();
+
+            const userBalance = balanceData?.balance || 4000;
+
+            // Build loginUser object from Supabase data
+            loginUser = {
+              id: supabaseUsers.id,
+              email: supabaseUsers.email,
+              name: supabaseUsers.full_name,
+              phoneNumber: supabaseUsers.phone_number,
+              country: supabaseUsers.country,
+              password: supabaseUsers.password,
+              isVerified: supabaseUsers.is_verified,
+              isAdmin: supabaseUsers.is_admin,
+              balance: userBalance,
+              lockedPages: supabaseUsers.locked_pages || [],
+              referralCode: supabaseUsers.referral_code,
+              referralEarnings: supabaseUsers.referral_earnings || 0,
+              totalReferrals: supabaseUsers.total_referrals || 0,
+              referredBy: supabaseUsers.referred_by
+            };
+
+            // Add to localStorage so future logins on this device are instant
+            setAllUsers((prev) => {
+              const exists = prev.some(u => u.id === loginUser.id);
+              return exists ? prev : [...prev, loginUser];
+            });
+
+          } catch (err: any) {
+            console.error('Error querying Supabase for login:', err);
+            return { success: false, error: 'Login failed. Please try again.' };
+          }
+        } else {
+          // Create new user for signup
           const newUserId = generateId();
           // Generate unique referral code (format: USER_XXXX)
           const referralCode = `USER_${newUserId.substring(0, 8).toUpperCase()}`;
@@ -924,6 +983,58 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
             referredBy: signupData.referralCode || undefined
           };
           
+          // Write new user to Supabase user_profiles table
+          try {
+            const { data: insertedUser, error: profileError } = await supabase
+              .from('user_profiles')
+              .insert({
+                email,
+                full_name: signupData.fullName,
+                phone_number: signupData.phone,
+                country: signupData.country,
+                password: signupData.password,
+                is_verified: false,
+                is_admin: false,
+                referral_code: referralCode,
+                referral_earnings: 0,
+                total_referrals: 0,
+                referred_by: signupData.referralCode || null,
+                is_active: true
+              })
+              .select();
+
+            if (profileError) {
+              console.error('Error creating user profile:', JSON.stringify(profileError, null, 2));
+              console.error('Full error details:', profileError.details);
+              return { success: false, error: `Failed to create account: ${profileError.message}` };
+            }
+
+            console.log('User created successfully:', insertedUser);
+            // Use the ID returned from Supabase if available
+            if (insertedUser && insertedUser.length > 0) {
+              const createdUser = insertedUser[0];
+              loginUser.id = createdUser.id;
+            }
+
+            // Write user balance to Supabase user_balances table
+            const { error: balanceError } = await supabase
+              .from('user_balances')
+              .insert({
+                user_id: loginUser.id,
+                balance: 4000,
+                equity: 4000,
+                free_margin: 4000
+              });
+
+            if (balanceError) {
+              console.error('Error creating user balance:', JSON.stringify(balanceError, null, 2));
+              // Don't fail - user was created, just balance wasn't recorded
+            }
+          } catch (err: any) {
+            console.error('Supabase error:', JSON.stringify(err, null, 2));
+            // Continue with local storage even if Supabase fails
+          }
+          
           // If this user was referred by someone, validate & track it
           if (signupData.referralCode && signupData.referralCode.trim()) {
             const referrer = allUsers.find(u => u.referralCode === signupData.referralCode.trim());
@@ -932,13 +1043,32 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
               const referralRecord = {
                 id: generateId(),
                 referrerId: referrer.id,
-                referredUserId: newUserId,
+                referredUserId: loginUser.id,
                 referredUserEmail: email,
                 referredUserName: signupData.fullName,
                 bonusAmount: 25,
                 status: 'PENDING' as const,
                 createdAt: Date.now()
               };
+              
+              // Write referral record to Supabase
+              try {
+                await supabase
+                  .from('referral_records')
+                  .insert({
+                    id: referralRecord.id,
+                    referrer_id: referrer.id,
+                    referred_user_id: loginUser.id,
+                    referred_user_email: email,
+                    referred_user_name: signupData.fullName,
+                    bonus_amount: 25,
+                    status: 'PENDING',
+                    created_at: new Date().toISOString()
+                  });
+              } catch (err) {
+                console.error('Error recording referral:', err);
+              }
+              
               setReferralRecords(prev => [...prev, referralRecord]);
               
               // Update referrer's stats
@@ -957,9 +1087,6 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
           }
           
           setAllUsers((prev) => [...prev, loginUser]);
-        } else {
-          // Login attempt for non-existing user
-          return { success: false, error: 'Account not found. Please sign up first.' };
         }
       }
 

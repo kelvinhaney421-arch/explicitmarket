@@ -27,7 +27,7 @@ export function SignupPage() {
     }
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
@@ -59,8 +59,7 @@ export function SignupPage() {
       return;
     }
 
-    // Simulate network delay
-    setTimeout(() => {
+    try {
       const signupData = {
         fullName: fullName.trim(),
         phone: phone.trim(),
@@ -69,12 +68,15 @@ export function SignupPage() {
         referralCode: referralCode.trim() || undefined
       };
 
-      const result = login(email, password, signupData);
+      const result = await login(email, password, signupData);
       if (!result.success) {
         setError(result.error || 'Signup failed');
       }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (

@@ -17,7 +17,7 @@ export function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
@@ -51,8 +51,7 @@ export function AuthPage() {
       }
     }
 
-    // Simulate network delay
-    setTimeout(() => {
+    try {
       const signupData = !isLogin ? {
         fullName: fullName.trim(),
         phone: phone.trim(),
@@ -60,12 +59,15 @@ export function AuthPage() {
         password
       } : undefined;
 
-      const result = login(email, password, signupData);
+      const result = await login(email, password, signupData);
       if (!result.success) {
         setError(result.error || 'Invalid email or password');
       }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-black p-4">

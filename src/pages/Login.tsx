@@ -11,19 +11,21 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    // Simulate network delay
-    setTimeout(() => {
-      const result = login(email, password);
+    try {
+      const result = await login(email, password);
       if (!result.success) {
         setError(result.error || 'Invalid email or password');
       }
+    } catch (err: any) {
+      setError(err.message || 'An error occurred');
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
