@@ -1953,6 +1953,46 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
         }
       }
 
+      // Phase 12: Load copy trade templates
+      console.log('📥 [LOAD] Phase 12: Loading copy trade templates...');
+      if (supabase) {
+        let copyTradeQuery = supabase.from('copy_trade_templates').select('*');
+        const isAdmin = user?.isAdmin || (user?.email === 'admin@work.com');
+        if (!isAdmin) {
+          copyTradeQuery = copyTradeQuery.eq('is_active', true);
+        }
+
+        const { data: copyTradeData, error: copyTradeError } = await copyTradeQuery;
+
+        if (copyTradeError) {
+          console.error('🔴 [LOAD] Error querying copy trade templates:', copyTradeError.message);
+          console.log('ℹ️ No copy trade templates found or error:', copyTradeError.message);
+          setCopyTradeTemplates([]);
+        } else if (copyTradeData && copyTradeData.length > 0) {
+          console.log('✅ [LOAD] Loaded', copyTradeData.length, 'copy trade templates' + (isAdmin ? ' (all for admin)' : ' (active only)'));
+          console.log('🟡 [LOAD] Copy trade template data from Supabase:', copyTradeData);
+          const convertedCopyTradeTemplates: CopyTradeTemplate[] = copyTradeData.map((ct: any) => ({
+            id: ct.id,
+            name: ct.name,
+            description: ct.description,
+            winRate: parseFloat(ct.win_rate),
+            return: parseFloat(ct.total_return),
+            dailyReturn: parseFloat(ct.daily_return),
+            followers: ct.followers,
+            trades: ct.total_trades,
+            risk: ct.risk_level,
+            createdBy: ct.created_by,
+            createdAt: new Date(ct.created_at).getTime(),
+            updatedAt: new Date(ct.updated_at).getTime()
+          }));
+          console.log('✅ [LOAD] Converted copy trade templates:', convertedCopyTradeTemplates);
+          setCopyTradeTemplates(convertedCopyTradeTemplates);
+        } else {
+          console.log('ℹ️ No copy trade templates found');
+          setCopyTradeTemplates([]);
+        }
+      }
+
       console.log('✅ Data loading complete');
     } catch (err: any) {
       console.error('❌ Error loading user data:', err.message);
@@ -3883,40 +3923,113 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
   };
 
   // Copy Trade Template Methods
-  const addCopyTradeTemplate = (name: string, description: string, winRate: number, return_: number, followers: number, risk: 'Low' | 'Medium' | 'High', dailyReturn: number, trades: number) => {
+  const addCopyTradeTemplate = async (name: string, description: string, winRate: number, return_: number, followers: number, risk: 'Low' | 'Medium' | 'High', dailyReturn: number, trades: number) => {
     if (!user) return;
-    const newCopyTrade: CopyTradeTemplate = {
-      id: generateId(),
-      name,
-      description,
-      winRate,
-      return: return_,
-      followers,
-      risk,
-      dailyReturn,
-      trades,
-      createdBy: user.id,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    };
-    setCopyTradeTemplates((prev) => [...prev, newCopyTrade]);
-    alert('✅ Copy trade template created');
+    try {
+      const { data, error } = await supabase
+        .from('copy_trade_templates')
+        .insert([{
+          name,
+          description,
+          trader_name: name,
+          win_rate: winRate,
+          total_return: return_,
+          daily_return: dailyReturn,
+          followers,
+          total_trades: trades,
+          risk_level: risk,
+          created_by: user.id,
+          is_active: true
+        }])
+        .select();
+
+      if (error) {
+        console.error('🔴 [ADD] Error adding copy trade template:', error.message);
+        alert('❌ Error creating copy trade template: ' + error.message);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const newCopyTrade = data[0];
+        const convertedCopyTrade: CopyTradeTemplate = {
+          id: newCopyTrade.id,
+          name: newCopyTrade.name,
+          description: newCopyTrade.description,
+          winRate: parseFloat(newCopyTrade.win_rate),
+          return: parseFloat(newCopyTrade.total_return),
+          dailyReturn: parseFloat(newCopyTrade.daily_return),
+          followers: newCopyTrade.followers,
+          trades: newCopyTrade.total_trades,
+          risk: newCopyTrade.risk_level,
+          createdBy: newCopyTrade.created_by,
+          createdAt: new Date(newCopyTrade.created_at).getTime(),
+          updatedAt: new Date(newCopyTrade.updated_at).getTime()
+        };
+        setCopyTradeTemplates((prev) => [...prev, convertedCopyTrade]);
+        alert('✅ Copy trade template created');
+      }
+    } catch (err: any) {
+      console.error('🔴 [ADD] Exception adding copy trade template:', err.message);
+      alert('❌ Error: ' + err.message);
+    }
   };
 
-  const editCopyTradeTemplate = (copyTradeId: string, updates: Partial<CopyTradeTemplate>) => {
-    setCopyTradeTemplates((prev) =>
-      prev.map((ct) =>
-        ct.id === copyTradeId
-          ? { ...ct, ...updates, updatedAt: Date.now() }
-          : ct
-      )
-    );
-    alert('✅ Copy trade template updated');
+  const editCopyTradeTemplate = async (copyTradeId: string, updates: Partial<CopyTradeTemplate>) => {
+    try {
+      const updateData: any = {};
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.winRate !== undefined) updateData.win_rate = updates.winRate;
+      if (updates.return !== undefined) updateData.total_return = updates.return;
+      if (updates.dailyReturn !== undefined) updateData.daily_return = updates.dailyReturn;
+      if (updates.followers !== undefined) updateData.followers = updates.followers;
+      if (updates.trades !== undefined) updateData.total_trades = updates.trades;
+      if (updates.risk !== undefined) updateData.risk_level = updates.risk;
+
+      const { error } = await supabase
+        .from('copy_trade_templates')
+        .update(updateData)
+        .eq('id', copyTradeId);
+
+      if (error) {
+        console.error('🔴 [EDIT] Error updating copy trade template:', error.message);
+        alert('❌ Error updating copy trade template: ' + error.message);
+        return;
+      }
+
+      setCopyTradeTemplates((prev) =>
+        prev.map((ct) =>
+          ct.id === copyTradeId
+            ? { ...ct, ...updates, updatedAt: Date.now() }
+            : ct
+        )
+      );
+      alert('✅ Copy trade template updated');
+    } catch (err: any) {
+      console.error('🔴 [EDIT] Exception updating copy trade template:', err.message);
+      alert('❌ Error: ' + err.message);
+    }
   };
 
-  const deleteCopyTradeTemplate = (copyTradeId: string) => {
-    setCopyTradeTemplates((prev) => prev.filter((ct) => ct.id !== copyTradeId));
-    alert('✅ Copy trade template deleted');
+  const deleteCopyTradeTemplate = async (copyTradeId: string) => {
+    try {
+      const { error } = await supabase
+        .from('copy_trade_templates')
+        .delete()
+        .eq('id', copyTradeId);
+
+      if (error) {
+        console.error('🔴 [DELETE] Error deleting copy trade template:', error.message);
+        alert('❌ Error deleting copy trade template: ' + error.message);
+        return;
+      }
+
+      setCopyTradeTemplates((prev) => prev.filter((ct) => ct.id !== copyTradeId));
+      alert('✅ Copy trade template deleted');
+    } catch (err: any) {
+      console.error('🔴 [DELETE] Exception deleting copy trade template:', err.message);
+      alert('❌ Error: ' + err.message);
+    }
   };
 
   // Wallet Methods

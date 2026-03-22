@@ -35,11 +35,11 @@ export function CopyTradeManagementTab({
     }));
   };
 
-  const handleAddCopyTrade = (e: React.MouseEvent) => {
+  const handleAddCopyTrade = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (copyTradeForm.name && copyTradeForm.winRate && copyTradeForm.return && copyTradeForm.followers && copyTradeForm.dailyReturn && copyTradeForm.trades) {
       if (editingCopyTradeId) {
-        editCopyTradeTemplate(editingCopyTradeId, {
+        await editCopyTradeTemplate(editingCopyTradeId, {
           name: copyTradeForm.name,
           description: copyTradeForm.description,
           winRate: parseFloat(copyTradeForm.winRate),
@@ -51,7 +51,7 @@ export function CopyTradeManagementTab({
         });
         setEditingCopyTradeId(null);
       } else {
-        addCopyTradeTemplate(
+        await addCopyTradeTemplate(
           copyTradeForm.name,
           copyTradeForm.description,
           parseFloat(copyTradeForm.winRate),
@@ -92,6 +92,12 @@ export function CopyTradeManagementTab({
       trades: copyTrade.trades.toString()
     });
     setEditingCopyTradeId(copyTrade.id);
+  };
+
+  const handleDeleteCopyTrade = async (copyTradeId: string) => {
+    if (confirm('Are you sure you want to delete this copy trade template?')) {
+      await deleteCopyTradeTemplate(copyTradeId);
+    }
   };
 
   return (
@@ -282,11 +288,7 @@ export function CopyTradeManagementTab({
                       <Edit2 className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm('Are you sure you want to delete this copy trade template?')) {
-                          deleteCopyTradeTemplate(copyTrade.id);
-                        }
-                      }}
+                      onClick={() => handleDeleteCopyTrade(copyTrade.id)}
                       className="p-2 bg-[#ef5350]/20 text-[#ef5350] hover:bg-[#ef5350]/30 rounded-lg transition-colors"
                       title="Delete copy trade"
                     >
