@@ -208,6 +208,7 @@ export function ReferralManagementTab() {
           <thead className="bg-gray-50 dark:bg-[#0d1117] border-b border-gray-300 dark:border-[#21262d]">
             <tr>
               <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">Referrer</th>
+              <th className="px-4 py-3 text-center font-semibold text-gray-900 dark:text-white">Referrer Balance</th>
               <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">User</th>
               <th className="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white">Email</th>
               <th className="px-4 py-3 text-center font-semibold text-gray-900 dark:text-white">Bonus</th>
@@ -218,16 +219,21 @@ export function ReferralManagementTab() {
           <tbody>
             {filteredReferrals.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-gray-600 dark:text-[#8b949e]">
+                <td colSpan={7} className="px-4 py-6 text-center text-gray-600 dark:text-[#8b949e]">
                   No referrals found
                 </td>
               </tr>
             ) : (
-              filteredReferrals.map(referral => (
-                <tr key={referral.id} className="border-b border-gray-300 dark:border-[#21262d] hover:bg-gray-50 dark:hover:bg-[#0d1117]/50">
-                  <td className="px-4 py-3 text-gray-900 dark:text-white">{getReferrerName(referral.referrerId)}</td>
-                  <td className="px-4 py-3 text-gray-900 dark:text-white">{referral.referredUserName}</td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-[#8b949e]">{referral.referredUserEmail}</td>
+              filteredReferrals.map(referral => {
+                const referrer = allUsers.find(u => u.id === referral.referrerId);
+                return (
+                  <tr key={referral.id} className="border-b border-gray-300 dark:border-[#21262d] hover:bg-gray-50 dark:hover:bg-[#0d1117]/50">
+                    <td className="px-4 py-3 text-gray-900 dark:text-white">{getReferrerName(referral.referrerId)}</td>
+                    <td className="px-4 py-3 text-center font-semibold text-green-600 dark:text-green-400">
+                      ${referrer?.balance?.toFixed(2) || '0.00'}
+                    </td>
+                    <td className="px-4 py-3 text-gray-900 dark:text-white">{referral.referredUserName}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-[#8b949e]">{referral.referredUserEmail}</td>
                   <td className="px-4 py-3 text-center">
                     {editingId === referral.id ? (
                       <div className="flex items-center gap-1 justify-center">
@@ -293,7 +299,8 @@ export function ReferralManagementTab() {
                     </div>
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>
