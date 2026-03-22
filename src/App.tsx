@@ -15,6 +15,7 @@ import { ReferralPage } from './pages/Referral';
 import { AdminPage } from './pages/Admin';
 import { HistoryPage } from './pages/History';
 import { Layout } from './components/Layout';
+import { LockedPageMessage } from './components/LockedPageMessage';
 function AppContent() {
   const { isAuthenticated, user, allUsers, theme } = useStore();
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -50,9 +51,9 @@ function AppContent() {
       return <Dashboard onNavigate={setCurrentPage} />;
     }
 
-    // Page lock enforcement
+    // Page lock enforcement - show locked message instead of redirecting silently
     if (user?.lockedPages?.includes(currentPage)) {
-      return <Dashboard onNavigate={setCurrentPage} />;
+      return <LockedPageMessage />;
     }
 
     switch (currentPage) {
