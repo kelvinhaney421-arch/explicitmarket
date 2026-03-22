@@ -1865,6 +1865,49 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
           console.log('ℹ️ No system wallets found');
           setSystemWallets([]);
         }
+
+        // 10. Load bot templates (admin creates, users can purchase)
+        console.log('🤖 [LOAD] Loading bot templates');
+        let botTemplateQuery = supabase
+          .from('bot_templates')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        // Only filter active bots for regular users
+        if (!isAdmin) {
+          botTemplateQuery = botTemplateQuery.eq('is_active', true);
+        }
+
+        const { data: botTemplateData, error: botTemplateError } = await botTemplateQuery;
+
+        if (botTemplateError) {
+          console.error('🔴 [LOAD] Error querying bot templates:', botTemplateError.message);
+          console.log('ℹ️ No bot templates found or error:', botTemplateError.message);
+          setBotTemplates([]);
+        } else if (botTemplateData && botTemplateData.length > 0) {
+          console.log('✅ [LOAD] Loaded', botTemplateData.length, 'bot templates' + (isAdmin ? ' (all for admin)' : ' (active only)'));
+          console.log('🟡 [LOAD] Bot template data from Supabase:', botTemplateData);
+          const convertedBotTemplates: BotTemplate[] = botTemplateData.map((b: any) => ({
+            id: b.id,
+            name: b.name,
+            description: b.description,
+            price: parseFloat(b.price),
+            performance: parseFloat(b.performance),
+            winRate: parseFloat(b.win_rate),
+            trades: b.trades,
+            type: b.type,
+            risk: b.risk,
+            maxDrawdown: parseFloat(b.max_drawdown),
+            createdBy: b.created_by,
+            createdAt: new Date(b.created_at).getTime(),
+            updatedAt: new Date(b.updated_at).getTime()
+          }));
+          console.log('✅ [LOAD] Converted bot templates:', convertedBotTemplates);
+          setBotTemplates(convertedBotTemplates);
+        } else {
+          console.log('ℹ️ No bot templates found');
+          setBotTemplates([]);
+        }
       }
 
       console.log('✅ Data loading complete');
@@ -3568,43 +3611,118 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
     alert('✅ Funded account rejected and fee refunded');
   };
 
-
   // Bot Template Methods
-  const addBotTemplate = (name: string, description: string, price: number, performance: number, winRate: number, trades: number, type: string, risk: 'Low' | 'Medium' | 'High', maxDrawdown: number) => {
+  const addBotTemplate = async (name: string, description: string, price: number, performance: number, winRate: number, trades: number, type: string, risk: 'Low' | 'Medium' | 'High', maxDrawdown: number) => {
     if (!user) return;
-    const newBot: BotTemplate = {
-      id: generateId(),
-      name,
-      description,
-      price,
-      performance,
-      winRate,
-      trades,
-      type,
-      risk,
-      maxDrawdown,
-      createdBy: user.id,
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    };
-    setBotTemplates((prev) => [...prev, newBot]);
-    alert('✅ Bot template created successfully');
+    try {
+      const { data, error } = await supabase
+        .from('bot_templates')
+        .insert([
+          {
+            name,
+            description,
+            price,
+            performance,
+            win_rate: winRate,
+            trades,
+            type,
+            risk,
+            max_drawdown: maxDrawdown,
+            created_by: user.id,
+            is_active: true
+          }
+        ])
+        .select();
+
+      if (error) {
+        console.error('❌ Error adding bot template:', error.message);
+        alert('❌ Failed to add bot: ' + error.message);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const b = data[0];
+        const newBot: BotTemplate = {
+          id: b.id,
+          name: b.name,
+          description: b.description,
+          price: parseFloat(b.price),
+          performance: parseFloat(b.performance),
+          winRate: parseFloat(b.win_rate),
+          trades: b.trades,
+          type: b.type,
+          risk: b.risk,
+          maxDrawdown: parseFloat(b.max_drawdown),
+          createdBy: b.created_by,
+          createdAt: new Date(b.created_at).getTime(),
+          updatedAt: new Date(b.updated_at).getTime()
+        };
+        setBotTemplates((prev) => [...prev, newBot]);
+        alert('✅ Bot template created successfully');
+      }
+    } catch (err: any) {
+      console.error('Error adding bot template:', err.message);
+      alert('❌ Error creating bot: ' + err.message);
+    }
   };
 
-  const editBotTemplate = (botId: string, updates: Partial<BotTemplate>) => {
-    setBotTemplates((prev) =>
-      prev.map((bot) =>
-        bot.id === botId
-          ? { ...bot, ...updates, updatedAt: Date.now() }
-          : bot
-      )
-    );
-    alert('✅ Bot template updated');
+  const editBotTemplate = async (botId: string, updates: Partial<BotTemplate>) => {
+    try {
+      const updateData: any = {};
+      if (updates.name !== undefined) updateData.name = updates.name;
+      if (updates.description !== undefined) updateData.description = updates.description;
+      if (updates.price !== undefined) updateData.price = updates.price;
+      if (updates.performance !== undefined) updateData.performance = updates.performance;
+      if (updates.winRate !== undefined) updateData.win_rate = updates.winRate;
+      if (updates.trades !== undefined) updateData.trades = updates.trades;
+      if (updates.type !== undefined) updateData.type = updates.type;
+      if (updates.risk !== undefined) updateData.risk = updates.risk;
+      if (updates.maxDrawdown !== undefined) updateData.max_drawdown = updates.maxDrawdown;
+
+      const { error } = await supabase
+        .from('bot_templates')
+        .update(updateData)
+        .eq('id', botId);
+
+      if (error) {
+        console.error('❌ Error updating bot template:', error.message);
+        alert('❌ Failed to update bot: ' + error.message);
+        return;
+      }
+
+      setBotTemplates((prev) =>
+        prev.map((bot) =>
+          bot.id === botId
+            ? { ...bot, ...updates, createdAt: bot.createdAt }
+            : bot
+        )
+      );
+      alert('✅ Bot template updated');
+    } catch (err: any) {
+      console.error('Error updating bot template:', err.message);
+      alert('❌ Error updating bot: ' + err.message);
+    }
   };
 
-  const deleteBotTemplate = (botId: string) => {
-    setBotTemplates((prev) => prev.filter((bot) => bot.id !== botId));
-    alert('✅ Bot template deleted');
+  const deleteBotTemplate = async (botId: string) => {
+    try {
+      const { error } = await supabase
+        .from('bot_templates')
+        .delete()
+        .eq('id', botId);
+
+      if (error) {
+        console.error('❌ Error deleting bot template:', error.message);
+        alert('❌ Failed to delete bot: ' + error.message);
+        return;
+      }
+
+      setBotTemplates((prev) => prev.filter((bot) => bot.id !== botId));
+      alert('✅ Bot template deleted');
+    } catch (err: any) {
+      console.error('Error deleting bot template:', err.message);
+      alert('❌ Error deleting bot: ' + err.message);
+    }
   };
 
   // Signal Template Methods

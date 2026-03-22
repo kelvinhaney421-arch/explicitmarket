@@ -35,11 +35,17 @@ export function BotManagementTabComponent({
     }));
   };
 
-  const handleAddBot = (e: React.MouseEvent) => {
+  const handleDeleteBot = async (botId: string) => {
+    if (confirm('Are you sure you want to delete this bot template?')) {
+      await deleteBotTemplate(botId);
+    }
+  };
+
+  const handleAddBot = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (botForm.name && botForm.price && botForm.performance && botForm.winRate && botForm.trades && botForm.maxDrawdown) {
       if (editingBotId) {
-        editBotTemplate(editingBotId, {
+        await editBotTemplate(editingBotId, {
           name: botForm.name,
           description: botForm.description,
           price: parseFloat(botForm.price),
@@ -52,7 +58,7 @@ export function BotManagementTabComponent({
         });
         setEditingBotId(null);
       } else {
-        addBotTemplate(
+        await addBotTemplate(
           botForm.name,
           botForm.description,
           parseFloat(botForm.price),
@@ -284,11 +290,7 @@ export function BotManagementTabComponent({
                       <Edit2 className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm('Are you sure you want to delete this bot template?')) {
-                          deleteBotTemplate(bot.id);
-                        }
-                      }}
+                      onClick={() => handleDeleteBot(bot.id)}
                       className="p-2 bg-[#ef5350]/20 text-[#ef5350] hover:bg-[#ef5350]/30 rounded-lg transition-colors"
                       title="Delete bot"
                     >
