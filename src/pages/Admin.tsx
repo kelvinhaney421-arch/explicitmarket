@@ -1252,14 +1252,76 @@ export function AdminPage() {
   const ReferrersTab = () => {
     const { allUsers, adjustReferrerEarnings, referralRecords } = useStore();
     const [editingReferrerId, setEditingReferrerId] = useState<string | null>(null);
+    const [activeReferrer, setActiveReferrer] = useState<any>(null);
     const [editAmount, setEditAmount] = useState<string>('');
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
     // Use the same data source as ReferralManagementTab - allUsers with referral data
     const referrers = allUsers.filter(u => (u.totalReferrals || 0) > 0).sort((a, b) => (b.totalReferrals || 0) - (a.totalReferrals || 0));
-    const activeReferrer = referrers.find(u => String(u.id) === editingReferrerId) ?? null;
+
+    const [referrerSearch, setReferrerSearch] = useState('');
+    const [selectedReferrerId, setSelectedReferrerId] = useState('');
+    const [amountToAdd, setAmountToAdd] = useState('');
+
+    const filteredReferrers = referrers.filter((u) =>
+      u.name.toLowerCase().includes(referrerSearch.toLowerCase()) ||
+      u.email.toLowerCase().includes(referrerSearch.toLowerCase())
+    );
+
+    const handleAddReferrerEarnings = async () => {
+      if (!selectedReferrerId) {
+        alert('❌ Please select a referrer');
+        return;
+      }
+      if (!amountToAdd || isNaN(parseFloat(amountToAdd))) {
+        alert('❌ Please enter a valid amount');
+        return;
+      }
+      const parsedAmount = parseFloat(amountToAdd);
+      if (parsedAmount <= 0) {
+        alert('❌ Amount must be greater than zero');
+        return;
+      }
+
+      const referrer = allUsers.find((u) => String(u.id) === String(selectedReferrerId));
+      if (!referrer) {
+        alert('❌ Referrer not found');
+        return;
+      }
+
+      const existing = referrer.referralEarnings || 0;
+      const targetAmount = existing + parsedAmount;
+      console.log('💰 Adding earnings to referrer', selectedReferrerId, 'current', existing, 'add', parsedAmount, 'target', targetAmount);
+
+      try {
+        await adjustReferrerEarnings(selectedReferrerId, targetAmount);
+        setSelectedReferrerId('');
+        setAmountToAdd('');
+        setReferrerSearch('');
+        alert('✅ Referrer earnings updated successfully!');
+      } catch (err) {
+        console.error('❌ Failed to add referrer earnings', err);
+        alert('❌ Failed to add referrer earnings. See console.');
+      }
+    };
+
+    const openEditModal = (userId: string, initialAmount?: number) => {
+      console.log('💸 Adjust Earnings clicked for referrer:', userId);
+      const user = allUsers.find((u) => String(u.id) === String(userId));
+      if (!user) {
+        console.warn('⚠️ Referrer not found in allUsers:', userId);
+        return;
+      }
+      setEditingReferrerId(userId);
+      setActiveReferrer(user);
+      setEditAmount(initialAmount !== undefined ? String(initialAmount) : '');
+      setIsEditModalOpen(true);
+    };
 
     const closeEditModal = () => {
+      setIsEditModalOpen(false);
       setEditingReferrerId(null);
+      setActiveReferrer(null);
       setEditAmount('');
     };
 
@@ -1270,7 +1332,7 @@ export function AdminPage() {
 
     const handleAdjustEarnings = async (userId: string) => {
       if (!editAmount || isNaN(parseInt(editAmount))) {
-        alert('❌ Please enter a valid amount');
+        alert('❌ Please enter a valid numeric amount');
         return;
       }
       const newAmount = parseInt(editAmount);
@@ -1278,8 +1340,7 @@ export function AdminPage() {
 
       try {
         await adjustReferrerEarnings(userId, newAmount);
-        setEditingReferrerId(null);
-        setEditAmount('');
+        closeEditModal();
         alert('✅ Referrer earnings adjusted successfully!');
       } catch (error) {
         console.error('❌ Error adjusting earnings:', error);
@@ -1300,6 +1361,79 @@ export function AdminPage() {
             </div>
           ) : (
             <>
+              <div className="bg-[#0d1117] border border-[#21262d] rounded-lg p-4 mb-6 space-y-4">
+                <h4 className="text-md font-semibold text-white">Manual Adjust Referrer Earnings</h4>
+                
+                {/* Search Input */}
+                <div className="space-y-2">
+                  <label className="text-xs text-[#8b949e] uppercase font-bold">Search Referrer</label>
+                  <input
+                    type="text"
+                    value={referrerSearch}
+                    onChange={(e) => setReferrerSearch(e.target.value)}
+                    placeholder="Type name or email..."
+                    className="w-full px-4 py-2.5 bg-[#0d1117] border border-[#21262d] rounded text-white focus:outline-none focus:border-blue-500 text-sm"
+                  />
+                </div>
+
+                {/* Referrer Dropdown - ONLY shows when filtered results exist */}
+                {filteredReferrers.length > 0 && (
+                  <div className="space-y-2">
+                    <label className="text-xs text-[#8b949e] uppercase font-bold">Select Referrer</label>
+                    <select
+                      value={selectedReferrerId}
+                      onChange={(e) => setSelectedReferrerId(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-[#0d1117] border border-[#21262d] rounded text-white focus:outline-none focus:border-blue-500 text-sm cursor-pointer"
+                    >
+                      <option value="">-- Choose a referrer --</option>
+                      {filteredReferrers.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name} - {u.email}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Selected Referrer Info Card - shows details when selected */}
+                {selectedReferrerId && (() => {
+                  const selected = allUsers.find(u => String(u.id) === String(selectedReferrerId));
+                  return selected ? (
+                    <div className="p-3 bg-purple-500/20 border border-purple-500/50 rounded-lg">
+                      <p className="text-xs text-[#8b949e] mb-1">Selected Referrer:</p>
+                      <p className="text-white font-bold">{selected.name}</p>
+                      <p className="text-xs text-[#8b949e] mt-2">Current Earnings: <span className="text-purple-300 font-mono">${(selected.referralEarnings || 0).toFixed(2)}</span></p>
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Amount Input */}
+                <div className="space-y-2">
+                  <label className="text-xs text-[#8b949e] uppercase font-bold">Amount to Add ($)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={amountToAdd}
+                    onChange={(e) => setAmountToAdd(e.target.value)}
+                    placeholder="e.g., 100"
+                    className="w-full px-4 py-2.5 bg-[#0d1117] border border-[#21262d] rounded text-white focus:outline-none focus:border-blue-500 text-sm"
+                  />
+                  {amountToAdd && (
+                    <p className="text-xs text-[#8b949e]">Amount to add: <span className="text-purple-300 font-mono">${parseInt(amountToAdd).toLocaleString()}</span></p>
+                  )}
+                </div>
+
+                {/* Add Earnings Button */}
+                <button
+                  type="button"
+                  onClick={handleAddReferrerEarnings}
+                  disabled={!selectedReferrerId || !amountToAdd}
+                  className="w-full py-3 bg-green-600 hover:bg-green-700 disabled:bg-[#21262d] disabled:text-[#8b949e] disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors"
+                >
+                  Add Earnings
+                </button>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 border border-blue-500/30 rounded-lg p-4">
                   <p className="text-xs text-blue-300 uppercase font-semibold mb-1">Total Referrers</p>
@@ -1358,10 +1492,8 @@ export function AdminPage() {
                         <td className="py-3 px-4 text-center text-[#8b949e]">{user.country}</td>
                         <td className="py-3 px-4 text-center">
                           <button
-                            onClick={() => {
-                              setEditingReferrerId(String(user.id));
-                              setEditAmount((user.referralEarnings || 0).toString());
-                            }}
+                            type="button"
+                            onClick={() => openEditModal(String(user.id))}
                             className="px-4 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 hover:shadow-lg transition-all duration-200 border border-blue-500"
                           >
                             💰 Adjust Earnings
@@ -1390,7 +1522,31 @@ export function AdminPage() {
                         <p className="text-[#8b949e] text-xs">Referrals</p>
                       </div>
                       <div className="bg-purple-500/20 rounded p-2 text-center">
-                        <p className="text-purple-300 font-semibold">${(user.referralEarnings || 0).toFixed(0)}</p>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = Math.round(user.referralEarnings || 0);
+                              const next = Math.max(0, current - 1);
+                              openEditModal(String(user.id), next);
+                            }}
+                            className="text-xs text-white rounded border border-purple-300/50 px-1 py-0.5 hover:bg-white/10"
+                          >
+                            &lt;
+                          </button>
+                          <p className="text-purple-300 font-semibold">${(user.referralEarnings || 0).toFixed(0)}</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = Math.round(user.referralEarnings || 0);
+                              const next = current + 1;
+                              openEditModal(String(user.id), next);
+                            }}
+                            className="text-xs text-white rounded border border-purple-300/50 px-1 py-0.5 hover:bg-white/10"
+                          >
+                            &gt;
+                          </button>
+                        </div>
                         <p className="text-[#8b949e] text-xs">Earnings</p>
                       </div>
                       <div className="bg-green-500/20 rounded p-2 text-center">
@@ -1400,10 +1556,8 @@ export function AdminPage() {
                     </div>
                     {editingReferrerId !== String(user.id) && (
                       <button
-                        onClick={() => {
-                          setEditingReferrerId(String(user.id));
-                          setEditAmount((user.referralEarnings || 0).toString());
-                        }}
+                        type="button"
+                        onClick={() => openEditModal(String(user.id))}
                         className="w-full mt-2 px-3 py-2 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-700 hover:shadow-lg transition-all duration-200 border border-blue-500"
                       >
                         💰 Adjust Earnings
@@ -1412,7 +1566,7 @@ export function AdminPage() {
                   </div>
                 ))}
               </div>
-            {editingReferrerId && activeReferrer && (
+            {isEditModalOpen && activeReferrer && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
                 <div className="w-full max-w-md rounded-lg border border-[#21262d] bg-[#0d1117] p-5 shadow-xl">
                   <h4 className="text-lg font-bold text-white mb-2">Adjust Referrer Earnings</h4>
@@ -1422,6 +1576,16 @@ export function AdminPage() {
 
                   <div className="flex items-center gap-2 mb-4">
                     <span className="text-white">$</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const current = parseInt(editAmount, 10);
+                        setEditAmount(String(isNaN(current) ? 0 : Math.max(0, current - 1)));
+                      }}
+                      className="rounded border border-[#21262d] px-2 py-1 text-xs text-white hover:bg-white/10"
+                    >
+                      &lt;
+                    </button>
                     <input
                       type="number"
                       autoFocus
@@ -1430,6 +1594,16 @@ export function AdminPage() {
                       className="flex-1 rounded border border-[#21262d] bg-[#161b22] px-2 py-2 text-white focus:border-blue-500 focus:outline-none"
                       placeholder="0.00"
                     />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const current = parseInt(editAmount, 10);
+                        setEditAmount(String(isNaN(current) ? 1 : current + 1));
+                      }}
+                      className="rounded border border-[#21262d] px-2 py-1 text-xs text-white hover:bg-white/10"
+                    >
+                      &gt;
+                    </button>
                   </div>
 
                   <div className="flex justify-end gap-2">

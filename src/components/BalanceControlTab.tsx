@@ -36,10 +36,10 @@ export function BalanceControlTab({ allUsers, addBalance, removeBalance }: Balan
     }
   };
 
-  const handleQuickAdd = (userId: string) => {
+  const prepareBalanceAdjust = (userId: string) => {
+    console.log('📝 Adjust Balance selected for user:', userId);
     setSelectedUserId(userId);
-    setAmountToAdd('100');
-    addBalance(userId, 100);
+    setAmountToAdd('');
   };
 
   const selectedUser = selectedUserId ? allUsers.find(u => u.id === selectedUserId) : null;
@@ -110,7 +110,11 @@ export function BalanceControlTab({ allUsers, addBalance, removeBalance }: Balan
 
           {/* Add Balance Button */}
           <button
-            onClick={handleAddBalance}
+            type="button"
+            onClick={() => {
+              console.log('🟢 Add Balance clicked for user:', selectedUserId, 'amount:', amountToAdd);
+              handleAddBalance();
+            }}
             disabled={!selectedUserId || !amountToAdd}
             className="w-full py-3 bg-[#26a69a] hover:bg-teal-600 disabled:bg-[#21262d] disabled:text-[#8b949e] disabled:cursor-not-allowed text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
           >
@@ -159,10 +163,11 @@ export function BalanceControlTab({ allUsers, addBalance, removeBalance }: Balan
                   <td className="py-3 px-4">
                     <div className="flex gap-2 justify-center">
                       <button
-                        onClick={() => handleQuickAdd(user.id)}
+                        type="button"
+                        onClick={() => prepareBalanceAdjust(user.id)}
                         className="px-3 py-1 bg-[#26a69a]/20 text-[#26a69a] rounded text-xs font-bold hover:bg-[#26a69a]/30 transition"
                       >
-                        +$100
+                        Adjust
                       </button>
                       <button
                         onClick={() => removeBalance(user.id, 100)}

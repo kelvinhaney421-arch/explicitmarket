@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StoreProvider, useStore } from './lib/store';
+import { Landing } from './pages/Landing';
 import { LoginPage } from './pages/Login';
 import { SignupPage } from './pages/Signup';
 import { Dashboard } from './pages/Dashboard';
@@ -21,7 +22,9 @@ function AppContent() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   
   // Determine current auth page from URL
-  const authPath = window.location.pathname.split('/')[2]; // /auth/login or /auth/signup
+  const pathname = window.location.pathname;
+  const authPath = pathname.split('/')[2]; // /auth/login or /auth/signup
+  const isAuthPath = pathname.startsWith('/auth/');
 
   // ensure that when authentication state changes we land on dashboard
   React.useEffect(() => {
@@ -35,13 +38,17 @@ function AppContent() {
     // This effect just needs to depend on theme to cause re-renders
   }, [theme]);
 
-  // Show separate Login or Signup pages
+  // Not authenticated - show landing, login, or signup
   if (!isAuthenticated) {
-    if (authPath === 'signup') {
-      return <SignupPage />;
+    // If on auth path, show login/signup
+    if (isAuthPath) {
+      if (authPath === 'signup') {
+        return <SignupPage />;
+      }
+      return <LoginPage />;
     }
-    // Default to login page
-    return <LoginPage />;
+    // Default to landing page
+    return <Landing />;
   }
 
   const renderPage = () => {
