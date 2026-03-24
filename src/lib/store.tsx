@@ -1756,7 +1756,7 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
             endDate: ct.end_date ? new Date(ct.end_date).getTime() : undefined,
             durationValue: ct.duration_value,
             durationType: ct.duration_type,
-            winRate: ct.win_rate || '0%',
+            winRate: '0%', // Not stored in DB, default to 0%
             risk: ct.risk,
             performance: ct.performance,
             traderReturn: ct.trader_return || 0
@@ -4797,7 +4797,6 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
       profit: 0,
       duration_value: durationValue,
       duration_type: durationType,
-      win_rate: '0%',
       performance: newCopy.performance,
       trader_return: traderReturn
     }).then(({error}) => {
