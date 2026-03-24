@@ -1357,7 +1357,11 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
                 isVerified: u.is_verified,
                 isAdmin: u.is_admin,
                 balance: balanceData?.balance || 4000,
-                lockedPages: u.locked_pages || [],
+                lockedPages: Array.isArray(u.locked_pages) 
+                  ? u.locked_pages 
+                  : (typeof u.locked_pages === 'string' 
+                    ? JSON.parse(u.locked_pages || '[]') 
+                    : []),
                 referralCode: u.referral_code,
                 referralEarnings: u.referral_earnings || 0,
                 totalReferrals: u.total_referrals || 0,
@@ -2155,7 +2159,11 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
               isVerified: supabaseUsers.is_verified,
               isAdmin: supabaseUsers.is_admin,
               balance: userBalance,
-              lockedPages: supabaseUsers.locked_pages || [],
+              lockedPages: Array.isArray(supabaseUsers.locked_pages) 
+                ? supabaseUsers.locked_pages 
+                : (typeof supabaseUsers.locked_pages === 'string' 
+                  ? JSON.parse(supabaseUsers.locked_pages || '[]') 
+                  : []),
               referralCode: supabaseUsers.referral_code,
               referralEarnings: supabaseUsers.referral_earnings || 0,
               totalReferrals: supabaseUsers.total_referrals || 0,
@@ -2422,7 +2430,8 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
   };
 
   // Admin Methods
-  const addBalance = (userId: string, amount: number) => {
+  const addBalance = async (userId: string, amount: number) => {
+    // Update local state first
     setAllUsers((prev) =>
       prev.map((u) =>
         u.id === userId ? { ...u, balance: (u.balance || 0) + amount } : u
@@ -2445,6 +2454,12 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
       date: Date.now()
     };
     setTransactions((prev) => [tx, ...prev]);
+
+    // Sync balance to database for cross-device persistence
+    const targetUser = allUsers.find(u => u.id === userId);
+    const newBalance = (targetUser?.balance || 0) + amount;
+    await syncUserBalance(userId, newBalance);
+    await syncTransaction(tx);
   };
 
   const removeBalance = (userId: string, amount: number) => {
@@ -2485,7 +2500,7 @@ export function StoreProvider({ children }: {children: React.ReactNode;}) {
       // Update in Supabase
       const { error } = await supabase
         .from('user_profiles')
-        .update({ locked_pages: newLockedPages })
+        .update({ locked_pages: `{${newLockedPages.map(p => `"${p}"`).join(',')}}` })
         .eq('id', userId);
 
       if (error) {
